@@ -115,10 +115,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const supabase = getSupabaseClient();
     try {
       const [sgRes, usersRes, logsRes, approvalsRes] = await Promise.all([
-        supabase.from("switch_gears").select("*").order("id", { ascending: false }),
-        supabase.from("users").select("*").order("id", { ascending: false }),
-        supabase.from("activity_logs").select("*").order("id", { ascending: false }),
-        supabase.from("change_approvals").select("*").order("id", { ascending: false }),
+        supabase.from("switch_gears").select("*").order("active_time", { ascending: false, nullsFirst: false }),
+        supabase.from("users").select("*").order("created_at", { ascending: false }),
+        supabase.from("activity_logs").select("*").order("created_at", { ascending: false }),
+        supabase.from("change_approvals").select("*").order("created_at", { ascending: false }),
       ]);
 
       if (sgRes.data) setSwitchGears(sgRes.data.map(mapSG));

@@ -23,9 +23,9 @@ export default function LaporanHarianPage() {
   const handleDownloadPdf = () => {
     const periodLabel = formatPeriod(startDate, endDate);
 
-    const columns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Keterangan"];
+    const columns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
     const rows = filteredSG.map((s) => [
-      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.description,
+      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
     ]);
 
     downloadPdf({
@@ -53,6 +53,7 @@ export default function LaporanHarianPage() {
   No. Lototo : _${s.lototoNo || "-"}_
   Peminta : _${s.requester}_
   Waktu Aktif : _${s.activeTime}_
+  Waktu Selesai : _${s.finishTime || "-"}_
   Keterangan : _${s.description || "-"}_
 
   _Date Create : ${now}_
@@ -71,6 +72,7 @@ export default function LaporanHarianPage() {
     { key: "lototoNo", header: "No. Lototo", render: (s: SwitchGear) => s.lototoNo || "-" },
     { key: "requester", header: "Peminta", render: (s: SwitchGear) => s.requester },
     { key: "activeTime", header: "Waktu Aktif", render: (s: SwitchGear) => s.activeTime, className: "text-gray-500" },
+    { key: "finishTime", header: "Waktu Selesai", render: (s: SwitchGear) => s.finishTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
     { key: "description", header: "Keterangan", render: (s: SwitchGear) => s.description || "-" },
     ...(!isVisitor ? [{
       key: "whatsapp" as const, header: "WhatsApp", render: (s: SwitchGear) => (

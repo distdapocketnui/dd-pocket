@@ -80,7 +80,7 @@ export default function LototoPage() {
       pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
       description: sg.description, image: sg.image || "",
       activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
-      finishTime: toDatetimeLocal(sg.finishTime) || "",
+      finishTime: toDatetimeLocal(sg.finishTime) || getCurrentDatetimeLocal(),
     });
     setModalOpen(true);
   };
