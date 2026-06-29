@@ -35,11 +35,13 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   const role = user?.role;
   const isOperator = role === "Operator";
   const isManager = role === "Manager";
+  const isVisitor = role === "Visitor";
 
-  const lototoCount = switchGears.filter((s) => s.status === "Aktif").length;
+  const lototoCount = switchGears.filter((s) => s.status === "Aktif Lototo").length;
   const maintCount = switchGears.filter((s) => s.status === "Maintenance").length;
 
   const filteredNav = NAV_ITEMS.filter((item) => {
+    if (isVisitor && !["/dashboard", "/lototo", "/sg-maintenance", "/switch-gear"].includes(item.href)) return false;
     if (isOperator && ["/aktivitas-log", "/pengguna", "/database-status"].includes(item.href)) return false;
     if (isManager && ["/pengguna", "/database-status"].includes(item.href)) return false;
     return true;

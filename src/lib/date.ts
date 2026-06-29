@@ -32,6 +32,41 @@ export function isInRange(dateStr: string, startDate: string, endDate: string): 
   return true;
 }
 
+/** Convert "YYYY-MM-DDTHH:mm" (datetime-local) to Indonesian format "DD/MM/YYYY HH:mm" */
+export function toIndonesianDate(datetime: string): string {
+  if (!datetime) return "";
+  const d = new Date(datetime + ":00");
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleString("id-ID", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+/** Convert Indonesian date "DD/MM/YYYY HH:mm" to "YYYY-MM-DDTHH:mm" (datetime-local) */
+export function toDatetimeLocal(datetime: string): string {
+  if (!datetime) return "";
+  const d = parseIndonesianDate(datetime);
+  if (!d) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
+/** Get current datetime in "YYYY-MM-DDTHH:mm" format for datetime-local default */
+export function getCurrentDatetimeLocal(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${day}T${hh}:${mm}`;
+}
+
 /** Format date range label for PDF */
 export function formatPeriod(startDate: string, endDate: string): string {
   if (!startDate && !endDate) return "Semua data";

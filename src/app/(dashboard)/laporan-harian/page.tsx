@@ -14,6 +14,7 @@ import { Send } from "lucide-react";
 export default function LaporanHarianPage() {
   const { switchGears } = useData();
   const { user } = useAuth();
+  const isVisitor = user?.role === "Visitor";
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -71,13 +72,13 @@ export default function LaporanHarianPage() {
     { key: "requester", header: "Peminta", render: (s: SwitchGear) => s.requester },
     { key: "activeTime", header: "Waktu Aktif", render: (s: SwitchGear) => s.activeTime, className: "text-gray-500" },
     { key: "description", header: "Keterangan", render: (s: SwitchGear) => s.description || "-" },
-    {
-      key: "whatsapp", header: "WhatsApp", render: (s: SwitchGear) => (
+    ...(!isVisitor ? [{
+      key: "whatsapp" as const, header: "WhatsApp", render: (s: SwitchGear) => (
         <button onClick={() => sendWhatsApp(s)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-600 hover:bg-green-100 transition-colors" title="Kirim via WhatsApp">
           <Send size={12} /> Kirim
         </button>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -94,6 +95,7 @@ export default function LaporanHarianPage() {
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
         onDownloadPdf={handleDownloadPdf}
+        showDownload={!isVisitor}
       />
 
       {/* Table */}

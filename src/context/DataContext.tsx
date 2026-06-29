@@ -49,6 +49,7 @@ function mapSG(row: any): SwitchGear {
     pic: row.pic || "",
     requester: row.requester || "",
     activeTime: row.active_time || "",
+    finishTime: row.finish_time || "",
     notifNo: row.notif_no || "",
     lototoNo: row.lototo_no || "",
     image: row.image || "",
@@ -212,6 +213,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           pic: data.pic,
           requester: data.requester,
           active_time: data.activeTime,
+          finish_time: data.finishTime,
           notif_no: data.notifNo,
           lototo_no: data.lototoNo,
           image: data.image,
@@ -243,6 +245,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (data.pic !== undefined) updateData.pic = data.pic;
       if (data.requester !== undefined) updateData.requester = data.requester;
       if (data.activeTime !== undefined) updateData.active_time = data.activeTime;
+      if (data.finishTime !== undefined) updateData.finish_time = data.finishTime;
       if (data.notifNo !== undefined) updateData.notif_no = data.notifNo;
       if (data.lototoNo !== undefined) updateData.lototo_no = data.lototoNo;
       if (data.image !== undefined) updateData.image = data.image;
@@ -446,6 +449,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const fieldMap: Record<string, string> = {
           name: "name", location: "location", unit: "unit", status: "status",
           pic: "pic", requester: "requester", activeTime: "active_time",
+          finishTime: "finish_time",
           notifNo: "notif_no", lototoNo: "lototo_no", image: "image", description: "description",
         };
 

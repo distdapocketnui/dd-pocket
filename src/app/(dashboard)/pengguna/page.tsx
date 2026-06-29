@@ -182,7 +182,7 @@ export default function PenggunaPage() {
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all">
-                <option value="Admin">Admin</option><option value="Manager">Manager</option><option value="Operator">Operator</option>
+                <option value="Admin">Admin</option><option value="Manager">Manager</option><option value="Operator">Operator</option><option value="Visitor">Visitor</option>
               </select>
             </div>
             <div>

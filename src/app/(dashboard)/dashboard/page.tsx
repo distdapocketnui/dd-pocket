@@ -8,7 +8,7 @@ import { Layers, CheckCircle, Wrench, CheckCheck, Shield, AlertTriangle, Clock }
 export default function DashboardPage() {
   const { switchGears } = useData();
 
-  const aktif = switchGears.filter((s) => s.status === "Aktif").length;
+  const aktif = switchGears.filter((s) => s.status === "Aktif Lototo").length;
   const maintenance = switchGears.filter((s) => s.status === "Maintenance").length;
   const selesai = switchGears.filter((s) => s.status === "Selesai").length;
 

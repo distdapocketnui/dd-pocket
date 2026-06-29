@@ -12,12 +12,13 @@ import { SwitchGear, SGStatus } from "@/types";
 import { Layers, CheckCircle, Wrench, CheckCheck, Lock, Image as ImageIcon, ListOrdered, X } from "lucide-react";
 import { compressImage } from "@/lib/image";
 import { downloadPdf } from "@/lib/pdf";
-import { isInRange, formatPeriod } from "@/lib/date";
+import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentDatetimeLocal } from "@/lib/date";
 
 export default function LototoPage() {
   const { switchGears, addSwitchGear, updateSwitchGear, deleteSwitchGear, createApproval } = useData();
   const { user, hasRole } = useAuth();
   const isOperator = user?.role === "Operator";
+  const isVisitor = user?.role === "Visitor";
   const canEdit = hasRole("Admin", "Operator");
   const canDirect = hasRole("Admin");
 
@@ -31,27 +32,30 @@ export default function LototoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<{
     name: string; location: string; unit: string; status: SGStatus;
-    pic: string; requester: string; notifNo: string; lototoNo: string; description: string; image: string;
+    pic: string; requester: string; notifNo: string; lototoNo: string;
+    description: string; image: string;
+    activeTime: string; finishTime: string;
   }>({
-    name: "", location: "", unit: "Tonasa 2/3", status: "Aktif",
+    name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
     pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "",
+    activeTime: "", finishTime: "",
   });
 
-  const aktif = switchGears.filter((s) => s.status === "Aktif").length;
+  const aktif = switchGears.filter((s) => s.status === "Aktif Lototo").length;
   const maintenance = switchGears.filter((s) => s.status === "Maintenance").length;
   const selesai = switchGears.filter((s) => s.status === "Selesai").length;
-  const lototoSG = switchGears.filter((s) => s.status === "Aktif");
+  const lototoSG = switchGears.filter((s) => s.status === "Aktif Lototo");
   const filteredSG = lototoSG.filter((s) => isInRange(s.activeTime, startDate, endDate));
 
   const handleDownloadPdf = () => {
-    const columns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Keterangan"];
+    const pdfColumns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
     const rows = filteredSG.map((s) => [
-      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.description,
+      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
     ]);
     downloadPdf({
       title: "Laporan Monitoring Switch Gear",
       period: formatPeriod(startDate, endDate),
-      columns,
+      columns: pdfColumns,
       rows,
       filename: `Laporan_SG_${startDate || "awal"}_${endDate || "akhir"}`,
     });
@@ -60,7 +64,11 @@ export default function LototoPage() {
   const openAdd = () => {
     setEditId(null);
     setImagePreview("");
-    setForm({ name: "", location: "", unit: "Tonasa 2/3", status: "Aktif", pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "" });
+    setForm({
+      name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
+      pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "",
+      activeTime: getCurrentDatetimeLocal(), finishTime: "",
+    });
     setModalOpen(true);
   };
 
@@ -69,7 +77,10 @@ export default function LototoPage() {
     setImagePreview(sg.image || "");
     setForm({
       name: sg.name, location: sg.location, unit: sg.unit, status: sg.status,
-      pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo, description: sg.description, image: sg.image || "",
+      pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
+      description: sg.description, image: sg.image || "",
+      activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
+      finishTime: toDatetimeLocal(sg.finishTime) || "",
     });
     setModalOpen(true);
   };
@@ -114,9 +125,11 @@ export default function LototoPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const now = new Date().toLocaleString("id-ID", {
-      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
-    });
+    const payload = {
+      ...form,
+      activeTime: toIndonesianDate(form.activeTime) || form.activeTime,
+      finishTime: toIndonesianDate(form.finishTime) || form.finishTime,
+    };
     if (editId) {
       if (isOperator) {
         const oldItem = switchGears.find(s => s.id === editId);
@@ -125,14 +138,14 @@ export default function LototoPage() {
           record_id: editId,
           action_type: "edit",
           old_data: oldItem || null,
-          new_data: { ...form, activeTime: now },
+          new_data: payload,
         });
         alert("Permintaan perubahan telah dikirim ke Admin/Manager untuk disetujui.");
       } else {
-        updateSwitchGear(editId, { ...form, activeTime: now });
+        updateSwitchGear(editId, payload);
       }
     } else {
-      addSwitchGear({ ...form, activeTime: now });
+      addSwitchGear(payload);
     }
     setModalOpen(false);
   };
@@ -150,7 +163,8 @@ export default function LototoPage() {
     { key: "notifNo", header: "No. Notif", render: (s: SwitchGear) => s.notifNo },
     { key: "lototoNo", header: "No. Lototo", render: (s: SwitchGear) => s.lototoNo },
     { key: "requester", header: "Peminta", render: (s: SwitchGear) => s.requester },
-    { key: "activeTime", header: "Waktu Aktif", render: (s: SwitchGear) => s.activeTime, className: "text-gray-500" },
+    { key: "activeTime", header: "Waktu Aktif", render: (s: SwitchGear) => s.activeTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
+    { key: "finishTime", header: "Waktu Selesai", render: (s: SwitchGear) => s.finishTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
     {
       key: "image", header: "Gambar", render: (s: SwitchGear) => s.image ? (
         <button onClick={() => handleImageClick(s)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 transition-colors">
@@ -197,6 +211,7 @@ export default function LototoPage() {
         onStartDateChange={setStartDate}
         onEndDateChange={setEndDate}
         onDownloadPdf={handleDownloadPdf}
+        showDownload={!isVisitor}
       />
 
       {/* DataTable */}
@@ -273,11 +288,37 @@ export default function LototoPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "Aktif" | "Maintenance" | "Selesai" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
-                <option value="Aktif">Aktif</option><option value="Maintenance">Maintenance</option><option value="Selesai">Selesai</option>
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "Aktif Lototo" | "Maintenance" | "Selesai" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
+                <option value="Aktif Lototo">Aktif Lototo</option><option value="Maintenance">Maintenance</option><option value="Selesai">Selesai</option>
               </select>
             </div>
           </div>
+
+          {/* Waktu Aktif */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Waktu Aktif</label>
+            <input
+              type="datetime-local"
+              required
+              value={form.activeTime}
+              onChange={(e) => setForm({ ...form, activeTime: e.target.value })}
+              className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+            />
+          </div>
+
+          {/* Waktu Selesai (hanya di edit mode) */}
+          {editId && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Waktu Selesai</label>
+              <input
+                type="datetime-local"
+                value={form.finishTime}
+                onChange={(e) => setForm({ ...form, finishTime: e.target.value })}
+                className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">PIC</label>

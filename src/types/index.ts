@@ -1,7 +1,7 @@
 // ===== Type Definitions =====
 
-export type SGStatus = "Aktif" | "Maintenance" | "Selesai";
-export type UserRole = "Admin" | "Manager" | "Operator";
+export type SGStatus = "Aktif Lototo" | "Maintenance" | "Selesai";
+export type UserRole = "Admin" | "Manager" | "Operator" | "Visitor";
 export type UserStatus = "Aktif" | "Nonaktif";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 export type ApprovalAction = "edit" | "delete" | "create";
@@ -15,6 +15,7 @@ export interface SwitchGear {
   pic: string;
   requester: string;
   activeTime: string;
+  finishTime: string;
   notifNo: string;
   lototoNo: string;
   image: string;

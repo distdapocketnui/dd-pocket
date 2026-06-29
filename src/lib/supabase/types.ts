@@ -49,6 +49,7 @@ export interface Database {
           pic: string;
           requester: string;
           active_time: string;
+          finish_time: string;
           notif_no: string;
           lototo_no: string;
           image: string;
@@ -64,6 +65,7 @@ export interface Database {
           pic?: string;
           requester?: string;
           active_time?: string;
+          finish_time?: string;
           notif_no?: string;
           lototo_no?: string;
           image?: string;
@@ -77,6 +79,7 @@ export interface Database {
           pic?: string;
           requester?: string;
           active_time?: string;
+          finish_time?: string;
           notif_no?: string;
           lototo_no?: string;
           image?: string;

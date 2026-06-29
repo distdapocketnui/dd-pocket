@@ -10,19 +10,20 @@ INSERT INTO users (name, email, unit, department, username, password, role, stat
   ('Budi Santoso', 'budi@ddpocket.com', 'Tonasa 2/3', 'Teknik', 'budi', 'budi123', 'Operator', 'Aktif'),
   ('Citra Dewi', 'citra@ddpocket.com', 'Tonasa 4', 'Teknik', 'citra', 'citra123', 'Operator', 'Aktif'),
   ('Eko Prasetyo', 'eko@ddpocket.com', 'Tonasa 5', 'Produksi', 'eko', 'eko123', 'Operator', 'Nonaktif'),
-  ('Fajar Nugroho', 'fajar@ddpocket.com', 'IT', 'Teknologi Informasi', 'fajar', 'fajar123', 'Manager', 'Aktif')
+  ('Fajar Nugroho', 'fajar@ddpocket.com', 'IT', 'Teknologi Informasi', 'fajar', 'fajar123', 'Manager', 'Aktif'),
+  ('Tamu Visitasi', 'visitor@ddpocket.com', 'Umum', 'Umum', 'visitor', 'visitor123', 'Visitor', 'Aktif')
 ON CONFLICT (username) DO NOTHING;
 
 -- SWITCH GEARS
-INSERT INTO switch_gears (name, location, unit, status, pic, requester, active_time, notif_no, lototo_no, image, description) VALUES
-  ('SG-MV-01', 'Area Transformer T2/3', 'Tonasa 2/3', 'Aktif', 'Ahmad Fauzi', 'Budi Santoso', '2026-06-25 08:30', 'NOTIF-2026-001', 'LT-2026-001', '', 'Pengamanan switch gear untuk area transformator'),
-  ('SG-MV-02', 'Area Kiln T4', 'Tonasa 4', 'Maintenance', 'Rudi Hermawan', 'Citra Dewi', '2026-06-24 14:00', 'NOTIF-2026-002', 'LT-2026-002', '', 'Perbaikan panel kontrol'),
-  ('SG-LV-01', 'Area Packer T5', 'Tonasa 5', 'Selesai', 'Dian Permata', 'Eko Prasetyo', '2026-06-23 09:15', 'NOTIF-2026-003', 'LT-2026-003', '', 'Penggantian komponen rusak'),
-  ('SG-MV-03', 'Area Crusher', 'Tonasa 2/3', 'Aktif', 'Fajar Nugroho', 'Gilang Ramadhan', '2026-06-25 10:00', 'NOTIF-2026-004', 'LT-2026-004', '', 'Lockout tagout untuk perawatan crusher'),
-  ('SG-LV-02', 'Area Raw Mill', 'Tonasa 4', 'Maintenance', 'Hendra Gunawan', 'Indra Lesmana', '2026-06-24 16:30', 'NOTIF-2026-005', 'LT-2026-005', '', 'Perbaikan sistem kelistrikan'),
-  ('SG-MV-04', 'Area Finish Mill', 'Tonasa 5', 'Aktif', 'Joko Susilo', 'Kurniawan', '2026-06-25 07:45', 'NOTIF-2026-006', 'LT-2026-006', '', 'Pengamanan area finish mill'),
-  ('SG-LV-03', 'Area Loading', 'SG Lainnya', 'Selesai', 'Lestari', 'Mega Sari', '2026-06-22 11:00', 'NOTIF-2026-007', 'LT-2026-007', '', 'Perawatan rutin'),
-  ('SG-MV-05', 'Area Coal Mill', 'Tonasa 2/3', 'Maintenance', 'Nurhayati', 'Omar Dani', '2026-06-24 08:00', 'NOTIF-2026-008', 'LT-2026-008', '', 'Overhaul panel utama')
+INSERT INTO switch_gears (name, location, unit, status, pic, requester, active_time, finish_time, notif_no, lototo_no, image, description) VALUES
+  ('SG-MV-01', 'Area Transformer T2/3', 'Tonasa 2/3', 'Aktif Lototo', 'Ahmad Fauzi', 'Budi Santoso', '2026-06-25 08:30', '', 'NOTIF-2026-001', 'LT-2026-001', '', 'Pengamanan switch gear untuk area transformator'),
+  ('SG-MV-02', 'Area Kiln T4', 'Tonasa 4', 'Maintenance', 'Rudi Hermawan', 'Citra Dewi', '2026-06-24 14:00', '', 'NOTIF-2026-002', 'LT-2026-002', '', 'Perbaikan panel kontrol'),
+  ('SG-LV-01', 'Area Packer T5', 'Tonasa 5', 'Selesai', 'Dian Permata', 'Eko Prasetyo', '2026-06-23 09:15', '2026-06-23 16:30', 'NOTIF-2026-003', 'LT-2026-003', '', 'Penggantian komponen rusak'),
+  ('SG-MV-03', 'Area Crusher', 'Tonasa 2/3', 'Aktif Lototo', 'Fajar Nugroho', 'Gilang Ramadhan', '2026-06-25 10:00', '', 'NOTIF-2026-004', 'LT-2026-004', '', 'Lockout tagout untuk perawatan crusher'),
+  ('SG-LV-02', 'Area Raw Mill', 'Tonasa 4', 'Maintenance', 'Hendra Gunawan', 'Indra Lesmana', '2026-06-24 16:30', '', 'NOTIF-2026-005', 'LT-2026-005', '', 'Perbaikan sistem kelistrikan'),
+  ('SG-MV-04', 'Area Finish Mill', 'Tonasa 5', 'Aktif Lototo', 'Joko Susilo', 'Kurniawan', '2026-06-25 07:45', '', 'NOTIF-2026-006', 'LT-2026-006', '', 'Pengamanan area finish mill'),
+  ('SG-LV-03', 'Area Loading', 'SG Lainnya', 'Selesai', 'Lestari', 'Mega Sari', '2026-06-22 11:00', '2026-06-22 15:00', 'NOTIF-2026-007', 'LT-2026-007', '', 'Perawatan rutin'),
+  ('SG-MV-05', 'Area Coal Mill', 'Tonasa 2/3', 'Maintenance', 'Nurhayati', 'Omar Dani', '2026-06-24 08:00', '', 'NOTIF-2026-008', 'LT-2026-008', '', 'Overhaul panel utama')
 ON CONFLICT DO NOTHING;
 
 -- ACTIVITY LOGS

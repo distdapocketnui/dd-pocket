@@ -45,7 +45,7 @@ interface Props {
 }
 
 const COLORS = ["#ef4444", "#f59e0b", "#10b981"];
-const LABELS = ["Aktif", "Maintenance", "Selesai"];
+const LABELS = ["Aktif Lototo", "Maintenance", "Selesai"];
 
 export default function DonutChart({ aktif, maintenance, selesai, mode = "full" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
