@@ -1,7 +1,7 @@
 // ===== Type Definitions =====
 
 export type SGStatus = "Aktif Lototo" | "Maintenance" | "Selesai";
-export type UserRole = "Admin" | "Manager" | "Operator" | "Visitor";
+export type UserRole = "Admin" | "Manager" | "Operator" | "Supervisor" | "Visitor";
 export type UserStatus = "Aktif" | "Nonaktif";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 export type ApprovalAction = "edit" | "delete" | "create";
@@ -26,11 +26,13 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  phone: string;
   unit: string;
   department: string;
   username: string;
   password: string;
   role: UserRole;
+  regu: string;
   status: UserStatus;
 }
 
@@ -41,6 +43,7 @@ export interface ChangeApproval {
   action_type: ApprovalAction;
   old_data: Record<string, any> | null;
   new_data: Record<string, any> | null;
+  regu: string;
   status: ApprovalStatus;
   requested_by: number;
   requested_by_name: string;

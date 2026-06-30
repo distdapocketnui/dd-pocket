@@ -8,11 +8,13 @@ export interface Database {
           id: number;
           name: string;
           email: string;
+          phone: string;
           unit: string;
           department: string;
           username: string;
           password: string;
           role: string;
+          regu: string;
           status: string;
           created_at: string;
           updated_at: string;
@@ -20,21 +22,25 @@ export interface Database {
         Insert: {
           name: string;
           email: string;
+          phone?: string;
           unit?: string;
           department?: string;
           username: string;
           password: string;
           role: string;
+          regu?: string;
           status?: string;
         };
         Update: {
           name?: string;
           email?: string;
+          phone?: string;
           unit?: string;
           department?: string;
           username?: string;
           password?: string;
           role?: string;
+          regu?: string;
           status?: string;
         };
         Relationships: [];
@@ -121,6 +127,7 @@ export interface Database {
           action_type: string;
           old_data: any;
           new_data: any;
+          regu: string;
           status: string;
           requested_by: number;
           requested_by_name: string;
@@ -135,6 +142,7 @@ export interface Database {
           action_type: string;
           old_data?: any;
           new_data?: any;
+          regu?: string;
           status?: string;
           requested_by: number;
           requested_by_name?: string;

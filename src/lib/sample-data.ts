@@ -12,13 +12,13 @@ export const SAMPLE_SWITCH_GEARS: SwitchGear[] = [
 ];
 
 export const SAMPLE_USERS: User[] = [
-  { id: 1, name: "Admin Utama", email: "admin@ddpocket.com", unit: "IT", department: "Teknologi Informasi", username: "admin", password: "admin123", role: "Admin", status: "Aktif" },
-  { id: 2, name: "Manajer Operasi", email: "manager@ddpocket.com", unit: "Operasi", department: "Produksi", username: "manager", password: "manager123", role: "Manager", status: "Aktif" },
-  { id: 3, name: "Operator Lapangan", email: "operator@ddpocket.com", unit: "Produksi", department: "Produksi", username: "operator", password: "operator123", role: "Operator", status: "Aktif" },
-  { id: 4, name: "Budi Santoso", email: "budi@ddpocket.com", unit: "Tonasa 2/3", department: "Teknik", username: "budi", password: "budi123", role: "Operator", status: "Aktif" },
-  { id: 5, name: "Citra Dewi", email: "citra@ddpocket.com", unit: "Tonasa 4", department: "Teknik", username: "citra", password: "citra123", role: "Operator", status: "Aktif" },
-  { id: 6, name: "Eko Prasetyo", email: "eko@ddpocket.com", unit: "Tonasa 5", department: "Produksi", username: "eko", password: "eko123", role: "Operator", status: "Nonaktif" },
-  { id: 7, name: "Fajar Nugroho", email: "fajar@ddpocket.com", unit: "IT", department: "Teknologi Informasi", username: "fajar", password: "fajar123", role: "Manager", status: "Aktif" },
+  { id: 1, name: "Admin Utama", email: "admin@ddpocket.com", phone: "081234567890", unit: "IT", department: "Teknologi Informasi", username: "admin", password: "admin123", role: "Admin", regu: "", status: "Aktif" },
+  { id: 2, name: "Manajer Operasi", email: "manager@ddpocket.com", phone: "081234567891", unit: "Operasi", department: "Produksi", username: "manager", password: "manager123", role: "Manager", regu: "", status: "Aktif" },
+  { id: 3, name: "Operator Lapangan", email: "operator@ddpocket.com", phone: "081234567892", unit: "Produksi", department: "Produksi", username: "operator", password: "operator123", role: "Operator", regu: "A", status: "Aktif" },
+  { id: 4, name: "Budi Santoso", email: "budi@ddpocket.com", phone: "", unit: "Tonasa 2/3", department: "Teknik", username: "budi", password: "budi123", role: "Operator", regu: "B", status: "Aktif" },
+  { id: 5, name: "Citra Dewi", email: "citra@ddpocket.com", phone: "", unit: "Tonasa 4", department: "Teknik", username: "citra", password: "citra123", role: "Operator", regu: "C", status: "Aktif" },
+  { id: 6, name: "Eko Prasetyo", email: "eko@ddpocket.com", phone: "", unit: "Tonasa 5", department: "Produksi", username: "eko", password: "eko123", role: "Operator", regu: "D", status: "Nonaktif" },
+  { id: 7, name: "Fajar Nugroho", email: "fajar@ddpocket.com", phone: "081234567893", unit: "IT", department: "Teknologi Informasi", username: "fajar", password: "fajar123", role: "Manager", regu: "", status: "Aktif" },
 ];
 
 export const SAMPLE_ACTIVITY_LOGS: ActivityLog[] = [

@@ -3,14 +3,14 @@
 -- ============================================================
 
 -- USERS
-INSERT INTO users (name, email, unit, department, username, password, role, status) VALUES
-  ('Admin Utama', 'admin@ddpocket.com', 'IT', 'Teknologi Informasi', 'admin', 'admin123', 'Admin', 'Aktif'),
-  ('Manajer Operasi', 'manager@ddpocket.com', 'Operasi', 'Produksi', 'manager', 'manager123', 'Manager', 'Aktif'),
-  ('Operator Lapangan', 'operator@ddpocket.com', 'Produksi', 'Produksi', 'operator', 'operator123', 'Operator', 'Aktif'),
-  ('Budi Santoso', 'budi@ddpocket.com', 'Tonasa 2/3', 'Teknik', 'budi', 'budi123', 'Operator', 'Aktif'),
-  ('Citra Dewi', 'citra@ddpocket.com', 'Tonasa 4', 'Teknik', 'citra', 'citra123', 'Operator', 'Aktif'),
-  ('Eko Prasetyo', 'eko@ddpocket.com', 'Tonasa 5', 'Produksi', 'eko', 'eko123', 'Operator', 'Nonaktif'),
-  ('Fajar Nugroho', 'fajar@ddpocket.com', 'IT', 'Teknologi Informasi', 'fajar', 'fajar123', 'Manager', 'Aktif')
+INSERT INTO users (name, email, phone, unit, department, username, password, role, regu, status) VALUES
+  ('Admin Utama', 'admin@ddpocket.com', '081234567890', 'IT', 'Teknologi Informasi', 'admin', 'admin123', 'Admin', '', 'Aktif'),
+  ('Manajer Operasi', 'manager@ddpocket.com', '081234567891', 'Operasi', 'Produksi', 'manager', 'manager123', 'Manager', '', 'Aktif'),
+  ('Operator Lapangan', 'operator@ddpocket.com', '081234567892', 'Produksi', 'Produksi', 'operator', 'operator123', 'Operator', 'A', 'Aktif'),
+  ('Budi Santoso', 'budi@ddpocket.com', '', 'Tonasa 2/3', 'Teknik', 'budi', 'budi123', 'Operator', 'B', 'Aktif'),
+  ('Citra Dewi', 'citra@ddpocket.com', '', 'Tonasa 4', 'Teknik', 'citra', 'citra123', 'Operator', 'C', 'Aktif'),
+  ('Eko Prasetyo', 'eko@ddpocket.com', '', 'Tonasa 5', 'Produksi', 'eko', 'eko123', 'Operator', 'D', 'Nonaktif'),
+  ('Fajar Nugroho', 'fajar@ddpocket.com', '081234567893', 'IT', 'Teknologi Informasi', 'fajar', 'fajar123', 'Manager', '', 'Aktif')
 ON CONFLICT (username) DO NOTHING;
 
 -- SWITCH GEARS

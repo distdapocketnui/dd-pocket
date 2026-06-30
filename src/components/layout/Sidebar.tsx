@@ -34,6 +34,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
   const role = user?.role;
   const isOperator = role === "Operator";
+  const isSupervisor = role === "Supervisor";
   const isManager = role === "Manager";
   const isVisitor = role === "Visitor";
 
@@ -42,7 +43,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
   const filteredNav = NAV_ITEMS.filter((item) => {
     if (isVisitor && !["/dashboard", "/lototo", "/sg-maintenance", "/switch-gear"].includes(item.href)) return false;
-    if (isOperator && ["/aktivitas-log", "/pengguna", "/database-status"].includes(item.href)) return false;
+    if ((isOperator || isSupervisor) && ["/aktivitas-log", "/pengguna", "/database-status"].includes(item.href)) return false;
     if (isManager && ["/pengguna", "/database-status"].includes(item.href)) return false;
     return true;
   });

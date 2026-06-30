@@ -19,12 +19,12 @@ export default function DatabaseStatusPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user && (user.role === "Operator" || user.role === "Manager")) {
+    if (user && (user.role === "Operator" || user.role === "Supervisor" || user.role === "Manager")) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
-  if (user?.role === "Operator" || user?.role === "Manager") return null;
+  if (user?.role === "Operator" || user?.role === "Supervisor" || user?.role === "Manager") return null;
 
   const [tables, setTables] = useState<TableStatus[]>([
     { name: "users", status: "checking", count: null },

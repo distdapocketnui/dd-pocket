@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Bell, Menu, LogOut, ChevronDown, Check, X, Info } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { Bell, Menu, LogOut, ChevronDown, Check, X, Info, UserCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
 import { getInitials, roleBadgeClass } from "@/lib/utils";
@@ -17,7 +18,7 @@ export default function Header({ onMobileMenu }: Props) {
   const [notifOpen, setNotifOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
-  const isAdminOrManager = hasRole("Admin", "Manager");
+  const isAdminOrSupervisor = hasRole("Admin", "Supervisor");
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -32,7 +33,79 @@ export default function Header({ onMobileMenu }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const pendingApprovals = approvals.filter((a) => a.status === "pending");
+  const isSupervisor = user?.role === "Supervisor";
+  const myRegu = user?.regu || "";
+
+  const pendingApprovals = approvals.filter((a) =>
+    a.status === "pending" && (!isSupervisor || a.regu === myRegu)
+  );
+  const myPendingCount = pendingApprovals.length;
+
+  const prevCountRef = useRef(myPendingCount);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const playNotifSound = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === "suspended") ctx.resume();
+
+      const now = ctx.currentTime;
+      // Two-tone chime: 800Hz -> 1000Hz, 300ms
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.setValueAtTime(1000, now + 0.1);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch { /* audio not critical */ }
+  }, []);
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Watch for new pending approvals -> trigger notifications
+  useEffect(() => {
+    const prev = prevCountRef.current;
+    prevCountRef.current = myPendingCount;
+
+    if (prev !== undefined && myPendingCount > prev) {
+      // Web Notification API (browser system notification)
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification("DD-Pocket — Approval Baru", {
+          body: `${myPendingCount - prev} permintaan approval baru menunggu`,
+          icon: "/logo.png",
+        });
+      }
+
+      // Audio - only when tab is active
+      if (document.visibilityState === "visible") {
+        playNotifSound();
+      }
+    }
+  }, [myPendingCount, playNotifSound]);
+
+  // When tab becomes visible, play sound if there are missed approvals
+  useEffect(() => {
+    const handleVisible = () => {
+      if (document.visibilityState === "visible" && myPendingCount > 0) {
+        playNotifSound();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
+  }, [myPendingCount, playNotifSound]);
 
   const getActionLabel = (type: string) => {
     switch (type) {
@@ -63,17 +136,17 @@ export default function Header({ onMobileMenu }: Props) {
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Notification Bell — only for Admin/Manager */}
-        {isAdminOrManager && (
+        {/* Notification Bell — only for Admin/Supervisor */}
+        {isAdminOrSupervisor && (
           <div className="relative" ref={notifRef}>
             <button
               onClick={() => setNotifOpen(!notifOpen)}
               className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
             >
               <Bell size={17} />
-              {pendingApprovalCount > 0 && (
+              {myPendingCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
-                  {pendingApprovalCount > 99 ? "99+" : pendingApprovalCount}
+                  {myPendingCount > 99 ? "99+" : myPendingCount}
                 </span>
               )}
             </button>
@@ -85,9 +158,9 @@ export default function Header({ onMobileMenu }: Props) {
 
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-gray-800">Persetujuan</h3>
-                  {pendingApprovalCount > 0 && (
+                  {myPendingCount > 0 && (
                     <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                      {pendingApprovalCount} menunggu
+                      {myPendingCount} menunggu
                     </span>
                   )}
                 </div>
@@ -114,15 +187,34 @@ export default function Header({ onMobileMenu }: Props) {
                               <span className="text-xs font-medium text-gray-800">
                                 {getTableLabel(a.table_name)}
                               </span>
-                              <span className="text-[10px] text-gray-400">#{a.record_id}</span>
+                              {a.action_type !== "create" && <span className="text-[10px] text-gray-400">#{a.record_id}</span>}
                             </div>
                             <p className="text-[11px] text-gray-500 mt-1">
                               oleh <span className="font-medium text-gray-600">{a.requested_by_name}</span>
                             </p>
-                            {a.action_type === "edit" && a.new_data && (
-                              <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                                {a.new_data.name ? `"${a.new_data.name}"` : ""}
-                              </p>
+                            {(a.action_type === "edit" || a.action_type === "create") && a.new_data && (
+                              <div className="mt-1 space-y-0.5">
+                                {a.new_data.name && <p className="text-[10px] text-gray-400 truncate leading-tight">SG: {a.new_data.name}</p>}
+                                {a.new_data.status && <span className={`inline-flex items-center text-[10px] mt-0.5 font-semibold px-1.5 py-0.5 rounded-full ${
+                                  a.new_data.status === "Aktif Lototo" ? "bg-red-50 text-red-700" :
+                                  a.new_data.status === "Maintenance" ? "bg-amber-50 text-amber-700" :
+                                  "bg-emerald-50 text-emerald-700"
+                                }`}>{a.new_data.status}</span>}
+                                {a.new_data.location && <p className="text-[10px] text-gray-400 truncate leading-tight">Lokasi: {a.new_data.location}</p>}
+                                {a.new_data.unit && <p className="text-[10px] text-gray-400 truncate leading-tight">Unit: {a.new_data.unit}</p>}
+                              </div>
+                            )}
+                            {a.action_type === "delete" && a.old_data && (
+                              <div className="mt-1 space-y-0.5">
+                                {a.old_data.name && <p className="text-[10px] text-gray-400 truncate leading-tight">SG: {a.old_data.name}</p>}
+                                {a.old_data.status && <span className={`inline-flex items-center text-[10px] mt-0.5 font-semibold px-1.5 py-0.5 rounded-full ${
+                                  a.old_data.status === "Aktif Lototo" ? "bg-red-50 text-red-700" :
+                                  a.old_data.status === "Maintenance" ? "bg-amber-50 text-amber-700" :
+                                  "bg-emerald-50 text-emerald-700"
+                                }`}>{a.old_data.status}</span>}
+                                {a.old_data.location && <p className="text-[10px] text-gray-400 truncate leading-tight">Lokasi: {a.old_data.location}</p>}
+                                {a.old_data.unit && <p className="text-[10px] text-gray-400 truncate leading-tight">Unit: {a.old_data.unit}</p>}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -179,6 +271,16 @@ export default function Header({ onMobileMenu }: Props) {
                   </span>
                 )}
               </div>
+              {user?.role !== "Visitor" && (
+                <Link
+                  href="/profil"
+                  onClick={() => setDropdownOpen(false)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <UserCircle size={16} />
+                  <span>Profil</span>
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"

@@ -8,7 +8,7 @@ import DataTable from "@/components/ui/DataTable";
 import Modal from "@/components/ui/Modal";
 import { User, UserRole, UserStatus } from "@/types";
 import { getInitials, roleBadgeClass, statusUserBadgeClass, statusUserDotClass } from "@/lib/utils";
-import { Plus, Eye, EyeOff } from "lucide-react";
+import { Plus, Eye, EyeOff, CheckCircle, X } from "lucide-react";
 
 export default function PenggunaPage() {
   const { user } = useAuth();
@@ -29,23 +29,23 @@ export default function PenggunaPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<{
-    name: string; email: string; unit: string; department: string;
-    username: string; password: string; role: UserRole; status: UserStatus;
+    name: string; email: string; phone: string; unit: string; department: string;
+    username: string; password: string; role: UserRole; regu: string; status: UserStatus;
   }>({
-    name: "", email: "", unit: "", department: "", username: "", password: "", role: "Operator", status: "Aktif",
+    name: "", email: "", phone: "", unit: "", department: "", username: "", password: "", role: "Operator", regu: "", status: "Aktif",
   });
 
   const [showPassword, setShowPassword] = useState(false);
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ name: "", email: "", unit: "IT", department: "", username: "", password: "", role: "Operator", status: "Aktif" });
+    setForm({ name: "", email: "", phone: "", unit: "IT", department: "", username: "", password: "", role: "Operator", regu: "", status: "Aktif" });
     setModalOpen(true);
   };
 
   const openEdit = (u: User) => {
     setEditId(u.id);
-    setForm({ name: u.name, email: u.email, unit: u.unit, department: u.department, username: u.username, password: u.password, role: u.role, status: u.status });
+    setForm({ name: u.name, email: u.email, phone: u.phone, unit: u.unit, department: u.department, username: u.username, password: u.password, role: u.role, regu: u.regu, status: u.status });
     setModalOpen(true);
   };
 
@@ -59,6 +59,10 @@ export default function PenggunaPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.password.length < 8) {
+      alert("Password minimal 8 karakter");
+      return;
+    }
     if (editId) {
       updateUser(editId, form);
     } else {
@@ -79,10 +83,16 @@ export default function PenggunaPage() {
       ),
     },
     { key: "email", header: "Email", render: (u: User) => u.email },
+    { key: "phone", header: "No. HP", render: (u: User) => u.phone || <span className="text-gray-300">—</span> },
     { key: "unit", header: "Unit Kerja", render: (u: User) => u.unit },
     { key: "department", header: "Departemen", render: (u: User) => u.department },
     { key: "username", header: "Username", render: (u: User) => u.username },
     { key: "password", header: "Password", render: () => <span className="text-gray-300 font-mono">••••••</span> },
+    {
+      key: "regu", header: "Regu", render: (u: User) => u.regu ? (
+        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 text-gray-700 text-xs font-bold">{u.regu}</span>
+      ) : <span className="text-gray-300">—</span>,
+    },
     {
       key: "role", header: "Role", render: (u: User) => (
         <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${roleBadgeClass(u.role)}`}>{u.role}</span>
@@ -155,6 +165,10 @@ export default function PenggunaPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">No. Handphone</label>
+              <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" placeholder="08xxx" />
+            </div>
+            <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Unit Kerja</label>
               <input type="text" required value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" />
             </div>
@@ -171,18 +185,43 @@ export default function PenggunaPage() {
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Password</label>
               <div className="relative">
-                <input type={showPassword ? "text" : "password"} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-3.5 py-2.5 pr-10 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" />
+                <input type={showPassword ? "text" : "password"} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={`w-full px-3.5 py-2.5 pr-10 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white outline-none transition-all ${
+                  form.password && (form.password.length >= 8 ? "border-emerald-400 focus:border-emerald-500" : "border-red-300 focus:border-red-500")
+                }`} minLength={8} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <div className={`flex items-center gap-1 text-xs transition-all ${
+                  form.password.length >= 8 ? "text-emerald-600" : form.password.length > 0 ? "text-red-500" : "text-gray-400"
+                }`}>
+                  {form.password.length >= 8 ? <CheckCircle size={12} /> : <X size={12} />}
+                  <span>Minimal 8 karakter</span>
+                </div>
+                {form.password.length > 0 && (
+                  <span className={`text-[10px] font-medium ${form.password.length >= 8 ? "text-emerald-500" : "text-red-400"}`}>
+                    ({form.password.length}/8)
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Role</label>
               <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all">
-                <option value="Admin">Admin</option><option value="Manager">Manager</option><option value="Operator">Operator</option><option value="Visitor">Visitor</option>
+                <option value="Admin">Admin</option><option value="Manager">Manager</option><option value="Supervisor">Supervisor</option><option value="Operator">Operator</option><option value="Visitor">Visitor</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Regu</label>
+              <select value={form.regu} onChange={(e) => setForm({ ...form, regu: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all">
+                <option value="">— Pilih —</option>
+                <option value="A">Regu A</option>
+                <option value="B">Regu B</option>
+                <option value="C">Regu C</option>
+                <option value="D">Regu D</option>
               </select>
             </div>
             <div>

@@ -62,11 +62,13 @@ function mapUser(row: any): User {
     id: row.id,
     name: row.name,
     email: row.email,
+    phone: row.phone || "",
     unit: row.unit || "",
     department: row.department || "",
     username: row.username,
     password: row.password,
     role: row.role as UserRole,
+    regu: row.regu || "",
     status: row.status,
   };
 }
@@ -90,6 +92,7 @@ function mapApproval(row: any): ChangeApproval {
     action_type: row.action_type,
     old_data: row.old_data,
     new_data: row.new_data,
+    regu: row.regu || "",
     status: row.status,
     requested_by: row.requested_by,
     requested_by_name: row.requested_by_name || "",
@@ -302,6 +305,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           username: data.username,
           password: data.password,
           role: data.role,
+          regu: data.regu || "",
           status: data.status,
         })
         .select()
@@ -325,11 +329,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const updateData: any = {};
       if (data.name !== undefined) updateData.name = data.name;
       if (data.email !== undefined) updateData.email = data.email;
+      if (data.phone !== undefined) updateData.phone = data.phone;
       if (data.unit !== undefined) updateData.unit = data.unit;
       if (data.department !== undefined) updateData.department = data.department;
       if (data.username !== undefined) updateData.username = data.username;
       if (data.password !== undefined) updateData.password = data.password;
       if (data.role !== undefined) updateData.role = data.role;
+      if (data.regu !== undefined) updateData.regu = data.regu;
       if (data.status !== undefined) updateData.status = data.status;
 
       const { data: updated, error } = await supabase
@@ -404,6 +410,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           status: "pending",
           requested_by: currentUser.id,
           requested_by_name: currentUser.name,
+          regu: currentUser.regu || "",
         })
         .select()
         .single();
@@ -440,30 +447,37 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Execute the actual change based on action_type
       if (approval.action_type === "edit" && approval.new_data) {
-        // Update the record with new_data
         const updatePayload: any = {};
-        const fields = ["name", "location", "unit", "status", "pic", "requester",
-          "active_time", "notif_no", "lototo_no", "image", "description"];
+        const tableName = approval.table_name;
 
-        // Map camelCase keys from JSONB to snake_case DB columns
-        const fieldMap: Record<string, string> = {
-          name: "name", location: "location", unit: "unit", status: "status",
-          pic: "pic", requester: "requester", activeTime: "active_time",
-          finishTime: "finish_time",
-          notifNo: "notif_no", lototoNo: "lototo_no", image: "image", description: "description",
-        };
-
-        for (const [camel, snake] of Object.entries(fieldMap)) {
-          if (approval.new_data[camel] !== undefined) {
-            updatePayload[snake] = approval.new_data[camel];
+        if (tableName === "users") {
+          // Users table — fields match directly (password, name, email, etc.)
+          for (const [key, value] of Object.entries(approval.new_data)) {
+            if (value !== undefined) updatePayload[key] = value;
           }
-        }
+          await supabase.from("users").update(updatePayload).eq("id", approval.record_id);
+        } else {
+          // Switch gears table — map camelCase to snake_case
+          const fieldMap: Record<string, string> = {
+            name: "name", location: "location", unit: "unit", status: "status",
+            pic: "pic", requester: "requester", activeTime: "active_time",
+            finishTime: "finish_time",
+            notifNo: "notif_no", lototoNo: "lototo_no", image: "image", description: "description",
+          };
 
-        await supabase.from(approval.table_name as "switch_gears").update(updatePayload).eq("id", approval.record_id);
+          for (const [camel, snake] of Object.entries(fieldMap)) {
+            if (approval.new_data[camel] !== undefined) {
+              updatePayload[snake] = approval.new_data[camel];
+            }
+          }
+          await supabase.from("switch_gears").update(updatePayload).eq("id", approval.record_id);
+        }
       } else if (approval.action_type === "delete") {
-        await supabase.from(approval.table_name as "switch_gears").delete().eq("id", approval.record_id);
+        const tableName = approval.table_name === "users" ? "users" : "switch_gears";
+        await supabase.from(tableName as "users" | "switch_gears").delete().eq("id", approval.record_id);
       } else if (approval.action_type === "create" && approval.new_data) {
-        await supabase.from(approval.table_name as "switch_gears").insert(approval.new_data);
+        const tableName = approval.table_name === "users" ? "users" : "switch_gears";
+        await supabase.from(tableName as "users" | "switch_gears").insert(approval.new_data);
       }
 
       // Update approval status
@@ -485,6 +499,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // Refresh data to get latest
       fetchAll();
+
+      // If the approved change affected the current logged-in user, sync session storage
+      if (approval.table_name === "users" && approval.record_id && currentUser) {
+        const stored = sessionStorage.getItem("ddp_current_user");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.id === approval.record_id) {
+            const { data: freshUser } = await supabase
+              .from("users")
+              .select("*")
+              .eq("id", approval.record_id)
+              .single();
+            if (freshUser) {
+              const mapped = mapUser(freshUser);
+              sessionStorage.setItem("ddp_current_user", JSON.stringify(mapped));
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error("approveApproval error:", err);
     }

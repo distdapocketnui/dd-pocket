@@ -16,12 +16,12 @@ export default function AktivitasLogPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user && user.role === "Operator") {
+    if (user && (user.role === "Operator" || user.role === "Supervisor")) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
-  if (user?.role === "Operator") return null;
+  if (user?.role === "Operator" || user?.role === "Supervisor") return null;
 
   const { activityLogs } = useData();
   const [startDate, setStartDate] = useState("");

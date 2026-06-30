@@ -17,9 +17,9 @@ import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentD
 export default function LototoPage() {
   const { switchGears, addSwitchGear, updateSwitchGear, deleteSwitchGear, createApproval } = useData();
   const { user, hasRole } = useAuth();
-  const isOperator = user?.role === "Operator";
+  const isOperator = user?.role === "Operator" || user?.role === "Supervisor";
   const isVisitor = user?.role === "Visitor";
-  const canEdit = hasRole("Admin", "Operator");
+  const canEdit = hasRole("Admin", "Operator", "Supervisor");
   const canDirect = hasRole("Admin");
 
   const [startDate, setStartDate] = useState("");
@@ -116,7 +116,7 @@ export default function LototoPage() {
           old_data: sg,
           new_data: null,
         });
-        alert("Permintaan penghapusan telah dikirim ke Admin/Manager untuk disetujui.");
+        alert("Permintaan penghapusan telah dikirim ke Admin/Supervisor untuk disetujui.");
       } else {
         deleteSwitchGear(sg.id);
       }
@@ -140,13 +140,24 @@ export default function LototoPage() {
           old_data: oldItem || null,
           new_data: payload,
         });
-        alert("Permintaan perubahan telah dikirim ke Admin/Manager untuk disetujui.");
+        alert("Permintaan perubahan telah dikirim ke Admin/Supervisor untuk disetujui.");
       } else {
         updateSwitchGear(editId, payload);
       }
     } else {
-      addSwitchGear(payload);
-    }
+        if (isOperator) {
+          createApproval({
+            table_name: "switch_gears",
+            record_id: 0,
+            action_type: "create",
+            old_data: null,
+            new_data: payload,
+          });
+          alert("Permintaan penambahan telah dikirim ke Admin/Supervisor untuk disetujui.");
+        } else {
+          addSwitchGear(payload);
+        }
+      }
     setModalOpen(false);
   };
 
@@ -288,7 +299,12 @@ export default function LototoPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "Aktif Lototo" | "Maintenance" | "Selesai" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "Aktif Lototo" | "Maintenance" | "Selesai" })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
+                form.status === "Aktif Lototo" ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/20" :
+                form.status === "Maintenance" ? "border-amber-400 bg-amber-50 focus:border-amber-500 focus:ring-amber-500/20" :
+                form.status === "Selesai" ? "border-emerald-400 bg-emerald-50 focus:border-emerald-500 focus:ring-emerald-500/20" :
+                "border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500/10"
+              }`}>
                 <option value="Aktif Lototo">Aktif Lototo</option><option value="Maintenance">Maintenance</option><option value="Selesai">Selesai</option>
               </select>
             </div>

@@ -23,6 +23,7 @@ export function roleBadgeClass(role: UserRole): string {
     Admin: "bg-purple-50 text-purple-700",
     Manager: "bg-blue-50 text-blue-700",
     Operator: "bg-emerald-50 text-emerald-700",
+    Supervisor: "bg-cyan-50 text-cyan-700",
     Visitor: "bg-gray-50 text-gray-700",
   };
   return map[role];
