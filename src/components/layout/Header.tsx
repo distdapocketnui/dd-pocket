@@ -68,6 +68,25 @@ export default function Header({ onMobileMenu }: Props) {
     } catch { /* audio not critical */ }
   }, []);
 
+  // Helper untuk kirim notifikasi — di PWA wajib pakai ServiceWorkerRegistration
+  const sendNotification = useCallback(async (title: string, options: NotificationOptions) => {
+    try {
+      // Coba pakai Service Worker (wajib untuk PWA mode)
+      const reg = await navigator.serviceWorker?.getRegistration();
+      if (reg) {
+        reg.showNotification(title, options);
+        return;
+      }
+    } catch { /* fallback ke constructor */ }
+
+    try {
+      // Fallback: constructor biasa (works di browser non-PWA)
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification(title, options);
+      }
+    } catch { /* silently fail */ }
+  }, []);
+
   // Request notification permission on mount
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
@@ -81,20 +100,17 @@ export default function Header({ onMobileMenu }: Props) {
     prevCountRef.current = myPendingCount;
 
     if (prev !== undefined && myPendingCount > prev) {
-      // Web Notification API (browser system notification)
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        new Notification("DD-Pocket — Approval Baru", {
-          body: `${myPendingCount - prev} permintaan approval baru menunggu`,
-          icon: "/logo.png",
-        });
-      }
+      sendNotification("DD-Pocket — Approval Baru", {
+        body: `${myPendingCount - prev} permintaan approval baru menunggu`,
+        icon: "/logo.png",
+      });
 
       // Audio - only when tab is active
       if (document.visibilityState === "visible") {
         playNotifSound();
       }
     }
-  }, [myPendingCount, playNotifSound]);
+  }, [myPendingCount, playNotifSound, sendNotification]);
 
   // When tab becomes visible, play sound if there are missed approvals
   useEffect(() => {
