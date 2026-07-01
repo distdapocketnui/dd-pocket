@@ -16,6 +16,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [clearedAt, setClearedAt] = useState<string>(() => {
+    if (typeof window !== "undefined") return localStorage.getItem("ddp_notif_cleared") || "";
+    return "";
+  });
 
   const isSupervisor = user?.role === "Supervisor";
   const myRegu = user?.regu || "";
@@ -27,11 +31,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const myPendingCount = pendingApprovals.length;
 
   // Approval history untuk operator — approval yang diajukan user sendiri
-  const myApprovals = (approvals || [])
+  const myAllApprovals = (approvals || [])
     .filter((a) => a.requested_by === user?.id)
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const myApprovals = myAllApprovals
+    .filter((a) => !clearedAt || new Date(a.created_at).getTime() > new Date(clearedAt).getTime())
     .slice(0, 5);
-  const myFeedbackCount = myApprovals.filter((a) => a.status !== "pending").length;
+
+  const myFeedbackCount = myAllApprovals.filter((a) => a.status !== "pending" && (!clearedAt || new Date(a.created_at).getTime() > new Date(clearedAt).getTime())).length;
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -52,6 +60,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
+
+  const handleClearNotif = () => {
+    const now = new Date().toISOString();
+    setClearedAt(now);
+    localStorage.setItem("ddp_notif_cleared", now);
+  };
 
   const getActionLabel = (type: string) => {
     switch (type) {
@@ -116,10 +130,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="relative px-5 py-4 border-b border-gray-200/80 flex items-center justify-between bg-white/80 backdrop-blur-md flex-shrink-0">
             <h3 className="text-base font-semibold text-gray-900">Persetujuan</h3>
             <div className="flex items-center gap-2">
-              {myPendingCount > 0 && (
-                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                  {myPendingCount} menunggu
-                </span>
+              {isAdminOrSupervisor ? (
+                myPendingCount > 0 && (
+                  <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    {myPendingCount} menunggu
+                  </span>
+                )
+              ) : (
+                <>
+                  {myFeedbackCount > 0 && (
+                    <button onClick={handleClearNotif} className="text-[10px] font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 px-2 py-0.5 rounded-full transition-colors">
+                      Bersihkan
+                    </button>
+                  )}
+                  {myApprovals.length > 0 && (
+                    <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {myApprovals.length}
+                    </span>
+                  )}
+                </>
               )}
               <button onClick={() => setNotifOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors">
                 <X size={16} />
