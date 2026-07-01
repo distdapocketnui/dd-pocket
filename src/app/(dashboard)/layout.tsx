@@ -27,9 +27,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const myPendingCount = pendingApprovals.length;
 
   // Approval history untuk operator — approval yang diajukan user sendiri
-  const myApprovals = (approvals || []).filter((a) =>
-    a.requested_by === user?.id
-  );
+  const myApprovals = (approvals || [])
+    .filter((a) => a.requested_by === user?.id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
   const myFeedbackCount = myApprovals.filter((a) => a.status !== "pending").length;
 
   useEffect(() => {
