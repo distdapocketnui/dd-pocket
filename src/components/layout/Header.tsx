@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell, Menu, LogOut, ChevronDown, UserCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getInitials, roleBadgeClass } from "@/lib/utils";
+import NotifToggle from "@/components/NotifToggle";
 
 interface Props {
   onMobileMenu: () => void;
@@ -14,10 +15,9 @@ interface Props {
 }
 
 export default function Header({ onMobileMenu, notifOpen, onNotifToggle, pendingCount }: Props) {
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const isAdminOrSupervisor = hasRole("Admin", "Supervisor");
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -41,20 +41,18 @@ export default function Header({ onMobileMenu, notifOpen, onNotifToggle, pending
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Notification Bell — only for Admin/Supervisor */}
-        {isAdminOrSupervisor && (
-          <button
-            onClick={onNotifToggle}
-            className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
-          >
-            <Bell size={17} />
-            {pendingCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
-                {pendingCount > 99 ? "99+" : pendingCount}
-              </span>
-            )}
-          </button>
-        )}
+        {/* Notification Bell */}
+        <button
+          onClick={onNotifToggle}
+          className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+        >
+          <Bell size={17} />
+          {pendingCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
+              {pendingCount > 99 ? "99+" : pendingCount}
+            </span>
+          )}
+        </button>
 
         <div className="relative" ref={dropdownRef}>
           <div
@@ -96,6 +94,9 @@ export default function Header({ onMobileMenu, notifOpen, onNotifToggle, pending
                   <span>Profil</span>
                 </Link>
               )}
+              <div className="px-2">
+                <NotifToggle />
+              </div>
               <button
                 onClick={logout}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"

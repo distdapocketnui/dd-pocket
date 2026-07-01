@@ -30,7 +30,57 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// ──────────────────────────────────────────────
+// Push Notification: terima dan tampilkan
+// ──────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = { title: "DD-Pocket", body: "Ada pembaruan terbaru", icon: "/icons/icon-192x192.png" };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      data = { ...data, ...parsed };
+    } catch {
+      data.body = event.data.text() || data.body;
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon,
+      badge: "/icons/icon-192x192.png",
+      tag: data.tag || "dd-pocket-general",
+      data: data.url ? { url: data.url } : undefined,
+      vibrate: [200, 100, 200],
+      requireInteraction: true,
+    })
+  );
+});
+
+// ──────────────────────────────────────────────
+// Notification click: buka URL atau fokus client
+// ──────────────────────────────────────────────
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const urlToOpen = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const matching = clients.find((c) => {
+        const targetUrl = new URL(urlToOpen, self.location.origin);
+        return c.url === targetUrl.href && "focus" in c;
+      });
+      if (matching) return matching.focus();
+      return self.clients.openWindow(urlToOpen);
+    })
+  );
+});
+
+// ──────────────────────────────────────────────
 // Fetch: strategi hybrid
+// ──────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);

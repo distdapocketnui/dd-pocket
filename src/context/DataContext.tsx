@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { SwitchGear, User, ActivityLog, ChangeApproval, UserRole } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { notifyAdminAfterApprovalRequest, notifyUserAfterReview } from "@/lib/notify-admin";
 
 interface DataContextType {
   switchGears: SwitchGear[];
@@ -427,6 +428,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         "Approval"
       );
 
+      // Trigger push notification ke admin/supervisor
+      notifyAdminAfterApprovalRequest({
+        title: "Approval Baru",
+        body: `${currentUser.name} meminta ${actionLabel.toLowerCase()} pada ${data.table_name}`,
+        url: "/",
+      });
+
       return mapped;
     } catch (err) {
       console.error("createApproval error:", err);
@@ -532,6 +540,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Refresh data to get latest
       fetchAll();
 
+      // Trigger push notification ke requester
+      notifyUserAfterReview(approval.requested_by_name, {
+        title: "Approval Disetujui",
+        body: `${currentUser.name} menyetujui permintaan ${approval.action_type} Anda`,
+        url: "/",
+      });
+
       // If the approved change affected the current logged-in user, sync session storage
       if (approval.table_name === "users" && approval.record_id && currentUser) {
         const stored = localStorage.getItem("ddp_current_user");
@@ -582,6 +597,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         `${currentUser.name} menolak ${approval.action_type} pada ${approval.table_name} #${approval.record_id}${notes ? `: ${notes}` : ""}`,
         "Approval"
       );
+
+      // Trigger push notification ke requester
+      notifyUserAfterReview(approval.requested_by_name, {
+        title: "Approval Ditolak",
+        body: `${currentUser.name} menolak permintaan ${approval.action_type} Anda`,
+        url: "/",
+      });
     } catch (err) {
       console.error("rejectApproval error:", err);
     }

@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { DataProvider } from "@/context/DataContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import PwaSetup from "@/components/PwaSetup";
 
 export const metadata: Metadata = {
   title: "Distribusi Daya — Monitoring LOTOTO",
@@ -35,6 +36,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png" />
       </head>
       <body className="scrollbar-thin">
+        <PwaSetup />
         <AuthProvider>
           <DataProvider>
             <ErrorBoundary>
