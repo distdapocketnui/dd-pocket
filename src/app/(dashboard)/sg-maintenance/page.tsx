@@ -306,12 +306,13 @@ export default function SGMaintenancePage() {
             />
           </div>
 
-          {/* Waktu Selesai (hanya di edit mode) */}
-          {editId && (
+          {/* Waktu Selesai (muncul saat status = Selesai) */}
+          {form.status === "Selesai" && (
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Waktu Selesai</label>
               <input
                 type="datetime-local"
+                required
                 value={form.finishTime}
                 onChange={(e) => setForm({ ...form, finishTime: e.target.value })}
                 className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
