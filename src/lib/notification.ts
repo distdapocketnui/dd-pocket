@@ -106,11 +106,15 @@ export async function saveSubscriptionOnServer(sub: PushSubscription, username?:
   try {
     const payload: any = sub.toJSON();
     if (username) payload.username = username;
-    await fetch("/api/notifications/subscribe", {
+    const res = await fetch("/api/notifications/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.warn("[Notif] Gagal simpan subscription:", err.error || res.statusText);
+    }
   } catch {
     // silent — subscription di browser sudah aktif meski gagal simpan
   }
