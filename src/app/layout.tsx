@@ -5,7 +5,18 @@ import { DataProvider } from "@/context/DataContext";
 
 export const metadata: Metadata = {
   title: "Distribusi Daya — Monitoring LOTOTO",
-  description: "Monitoring pengamanan switch gear dan status LOTOTO pra maintenance",
+  description: "Monitoring pengamanan switch gear dan status LOTOTO",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "DD-Pocket",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -15,6 +26,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="id">
+      <head>
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png" />
+      </head>
       <body className="scrollbar-thin">
         <AuthProvider>
           <DataProvider>

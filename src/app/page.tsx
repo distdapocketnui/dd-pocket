@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, Smartphone } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +14,30 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  // PWA install prompt
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+      return;
+    }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => setIsInstalled(true));
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const result = await deferredPrompt.userChoice;
+    if (result.outcome === "accepted") setDeferredPrompt(null);
+  };
 
   // Redirect if already logged in
   useEffect(() => {
@@ -141,7 +165,20 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-[11px] text-gray-400 mt-6">&copy; 2026 Unit Distribusi Daya — design by NUI6184</p>
+          {/* PWA Install */}
+          {deferredPrompt && !isInstalled && (
+            <div className="mt-4">
+              <button
+                onClick={handleInstall}
+                className="w-full py-2.5 border-2 border-dashed border-blue-300 text-blue-600 rounded-xl font-medium text-sm hover:bg-blue-50 hover:border-blue-400 transition-all duration-200 flex items-center justify-center gap-2 group"
+              >
+                <Smartphone size={16} className="group-hover:animate-bounce" />
+                Install Distda Pocket
+              </button>
+            </div>
+          )}
+
+          <p className="text-center text-[11px] text-gray-400 mt-4">&copy; 2026 Unit Distribusi Daya — design by NUI6184</p>
         </div>
       </div>
     </div>

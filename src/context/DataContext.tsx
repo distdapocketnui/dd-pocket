@@ -476,8 +476,40 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         const tableName = approval.table_name === "users" ? "users" : "switch_gears";
         await supabase.from(tableName as "users" | "switch_gears").delete().eq("id", approval.record_id);
       } else if (approval.action_type === "create" && approval.new_data) {
+        console.log(">>> APPROVE CREATE:", { table: approval.table_name, new_data: approval.new_data });
         const tableName = approval.table_name === "users" ? "users" : "switch_gears";
-        await supabase.from(tableName as "users" | "switch_gears").insert(approval.new_data);
+
+        if (tableName === "users") {
+          const { error: insertErr } = await supabase.from("users").insert(approval.new_data);
+          if (insertErr) throw insertErr;
+        } else {
+          // Switch gears table — map camelCase to snake_case
+          const fieldMap: Record<string, string> = {
+            name: "name", location: "location", unit: "unit", status: "status",
+            pic: "pic", requester: "requester", activeTime: "active_time",
+            finishTime: "finish_time",
+            notifNo: "notif_no", lototoNo: "lototo_no", image: "image", description: "description",
+          };
+          const insertPayload: Record<string, any> = {};
+          for (const [camel, snake] of Object.entries(fieldMap)) {
+            if (approval.new_data[camel] !== undefined) {
+              insertPayload[snake] = approval.new_data[camel];
+            }
+          }
+          console.log(">>> INSERT PAYLOAD:", insertPayload);
+          // Pakai tanpa .select().single() dulu untuk kompatibilitas Safari
+          const { error: insertErr } = await supabase
+            .from("switch_gears")
+            .insert(insertPayload);
+          if (insertErr) throw insertErr;
+          console.log(">>> INSERT BERHASIL");
+        }
+      } else {
+        console.log(">>> APPROVAL TIDAK MASUK BRANCH CREATE:", {
+          action_type: approval.action_type,
+          has_new_data: !!approval.new_data,
+          new_data_value: approval.new_data
+        });
       }
 
       // Update approval status
@@ -520,6 +552,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (err) {
       console.error("approveApproval error:", err);
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan saat menyetujui";
+      alert("Gagal menyetujui: " + message);
     }
   }, [approvals, addLog, fetchAll]);
 

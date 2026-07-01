@@ -13,8 +13,9 @@ CREATE TABLE IF NOT EXISTS users (
   department TEXT NOT NULL DEFAULT '',
   username TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('Admin', 'Manager', 'Operator')),
+  role TEXT NOT NULL CHECK (role IN ('Admin', 'Manager', 'Operator', 'Supervisor', 'Visitor')),
   status TEXT NOT NULL DEFAULT 'Aktif' CHECK (status IN ('Aktif', 'Nonaktif')),
+  regu TEXT NOT NULL DEFAULT '',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -25,10 +26,11 @@ CREATE TABLE IF NOT EXISTS switch_gears (
   name TEXT NOT NULL,
   location TEXT NOT NULL DEFAULT '',
   unit TEXT NOT NULL DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'Aktif' CHECK (status IN ('Aktif', 'Maintenance', 'Selesai')),
+  status TEXT NOT NULL DEFAULT 'Aktif Lototo' CHECK (status IN ('Aktif Lototo', 'Maintenance', 'Selesai')),
   pic TEXT NOT NULL DEFAULT '',
   requester TEXT NOT NULL DEFAULT '',
   active_time TEXT NOT NULL DEFAULT '',
+  finish_time TEXT NOT NULL DEFAULT '',
   notif_no TEXT NOT NULL DEFAULT '',
   lototo_no TEXT NOT NULL DEFAULT '',
   image TEXT NOT NULL DEFAULT '',
@@ -141,3 +143,48 @@ CREATE POLICY "Users can insert activity_logs"
 CREATE POLICY "Users can delete activity_logs"
   ON activity_logs FOR DELETE
   USING (true);
+
+-- ============================================================
+-- 7. CHANGE APPROVALS TABLE (untuk workflow approval operator)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS change_approvals (
+  id BIGSERIAL PRIMARY KEY,
+  table_name TEXT NOT NULL,
+  record_id BIGINT NOT NULL DEFAULT 0,
+  action_type TEXT NOT NULL CHECK (action_type IN ('edit', 'delete', 'create')),
+  old_data JSONB,
+  new_data JSONB,
+  regu TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  requested_by BIGINT NOT NULL REFERENCES users(id),
+  requested_by_name TEXT NOT NULL DEFAULT '',
+  reviewed_by BIGINT REFERENCES users(id),
+  review_notes TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_change_approvals_status ON change_approvals(status);
+CREATE INDEX IF NOT EXISTS idx_change_approvals_requested_by ON change_approvals(requested_by);
+
+-- ============================================================
+-- 8. ALTER TABLE untuk database yang sudah ada (dijalankan manual)
+--    jika tabel sudah dibuat dengan migration versi lama
+-- ============================================================
+-- -- Tambah kolom finish_time jika belum ada
+-- ALTER TABLE switch_gears ADD COLUMN IF NOT EXISTS finish_time TEXT NOT NULL DEFAULT '';
+--
+-- -- Update CHECK constraint status — include 'Aktif Lototo'
+-- ALTER TABLE switch_gears DROP CONSTRAINT IF EXISTS switch_gears_status_check;
+-- ALTER TABLE switch_gears ADD CONSTRAINT switch_gears_status_check
+--   CHECK (status IN ('Aktif Lototo', 'Maintenance', 'Selesai'));
+-- ALTER TABLE switch_gears ALTER COLUMN status SET DEFAULT 'Aktif Lototo';
+--
+-- -- Tambah role Supervisor & Visitor ke users
+-- ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+-- ALTER TABLE users ADD CONSTRAINT users_role_check
+--   CHECK (role IN ('Admin', 'Manager', 'Operator', 'Supervisor', 'Visitor'));
+--
+-- -- Tambah kolom regu jika belum ada
+-- ALTER TABLE users ADD COLUMN IF NOT EXISTS regu TEXT NOT NULL DEFAULT '';
+--
