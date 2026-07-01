@@ -3,8 +3,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { User, UserRole } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -38,19 +36,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load user from session storage on mount (fast restore)
   useEffect(() => {
-    const stored = sessionStorage.getItem("ddp_current_user");
+    const stored = localStorage.getItem("ddp_current_user");
     if (stored) {
       try {
         setUser(JSON.parse(stored));
       } catch {
-        sessionStorage.removeItem("ddp_current_user");
+        localStorage.removeItem("ddp_current_user");
       }
     }
     setIsLoading(false);
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const stored = sessionStorage.getItem("ddp_current_user");
+    const stored = localStorage.getItem("ddp_current_user");
     if (!stored) return;
     try {
       const parsed = JSON.parse(stored);
@@ -62,16 +60,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error || !data) {
-        sessionStorage.removeItem("ddp_current_user");
+        localStorage.removeItem("ddp_current_user");
         setUser(null);
         return;
       }
 
       const mapped = mapToUser(data);
       setUser(mapped);
-      sessionStorage.setItem("ddp_current_user", JSON.stringify(mapped));
+      localStorage.setItem("ddp_current_user", JSON.stringify(mapped));
     } catch {
-      sessionStorage.removeItem("ddp_current_user");
+      localStorage.removeItem("ddp_current_user");
       setUser(null);
     }
   }, []);
@@ -109,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const mapped = mapToUser(data);
       setUser(mapped);
-      sessionStorage.setItem("ddp_current_user", JSON.stringify(mapped));
+      localStorage.setItem("ddp_current_user", JSON.stringify(mapped));
 
       // Log activity
       await addLog("Login", "User login ke sistem", "Dashboard", mapped);
@@ -126,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       addLog("Logout", "User logout dari sistem", "Dashboard", user);
     }
     setUser(null);
-    sessionStorage.removeItem("ddp_current_user");
+    localStorage.removeItem("ddp_current_user");
   }, [user, addLog]);
 
   const hasRole = useCallback((...roles: UserRole[]) => {
@@ -134,18 +132,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return roles.includes(user.role);
   }, [user]);
 
-  // Auto logout after 10 minutes of inactivity
+  // State untuk peringatan auto-logout
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
+  const [timeoutCountdown, setTimeoutCountdown] = useState(60);
+
+  // Auto logout after 30 minutes of inactivity (dengan peringatan)
   useEffect(() => {
     if (!user) return;
 
     let timeout: ReturnType<typeof setTimeout>;
+    let warningTimeout: ReturnType<typeof setTimeout>;
+    let countdownInterval: ReturnType<typeof setInterval>;
+
+    const doLogout = () => {
+      setShowTimeoutWarning(false);
+      setTimeoutCountdown(60);
+      logout();
+      addLog("Logout", "User logout otomatis karena tidak ada aktivitas selama 30 menit", "Dashboard", user);
+    };
+
+    const startCountdown = () => {
+      setShowTimeoutWarning(true);
+      setTimeoutCountdown(60);
+
+      countdownInterval = setInterval(() => {
+        setTimeoutCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      timeout = setTimeout(() => {
+        clearInterval(countdownInterval);
+        doLogout();
+      }, 60 * 1000);
+    };
 
     const resetTimer = () => {
       clearTimeout(timeout);
+      clearTimeout(warningTimeout);
+      clearInterval(countdownInterval);
+      setShowTimeoutWarning(false);
+      setTimeoutCountdown(60);
+
+      // Tampilkan peringatan setelah 29 menit
+      warningTimeout = setTimeout(() => {
+        startCountdown();
+      }, 29 * 60 * 1000);
+
+      // Logout setelah 30 menit
       timeout = setTimeout(() => {
-        logout();
-        addLog("Logout", "User logout otomatis karena tidak ada aktivitas selama 10 menit", "Dashboard", user);
-      }, 10 * 60 * 1000);
+        clearInterval(countdownInterval);
+        doLogout();
+      }, 30 * 60 * 1000);
     };
 
     const events = ["mousemove", "mousedown", "click", "keydown", "touchstart", "scroll", "wheel"];
@@ -155,13 +197,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       clearTimeout(timeout);
+      clearTimeout(warningTimeout);
+      clearInterval(countdownInterval);
       events.forEach((event) => window.removeEventListener(event, resetTimer));
     };
   }, [user, logout, addLog]);
 
+  // Timeout Warning UI
+  const TimeoutWarning = () => {
+    if (!showTimeoutWarning) return null;
+    return (
+      <div className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center p-3 pointer-events-none">
+        <div className="bg-red-600 text-white text-sm rounded-xl px-5 py-3 shadow-2xl pointer-events-auto flex items-center gap-3 animate-bounce">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span className="font-medium">
+            Sesi akan berakhir dalam {timeoutCountdown} detik — sentuh layar untuk membatalkan
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AuthContext.Provider value={{ user, isLoading, login, logout, hasRole, refreshUser }}>
       {children}
+      <TimeoutWarning />
     </AuthContext.Provider>
   );
 }

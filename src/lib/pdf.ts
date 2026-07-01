@@ -20,7 +20,7 @@ export function downloadPdf({ title, period, columns, rows, filename }: PdfData)
   // Get current user for footer
   let userName = "System";
   try {
-    const stored = sessionStorage.getItem("ddp_current_user");
+    const stored = localStorage.getItem("ddp_current_user");
     if (stored) {
       const u = JSON.parse(stored);
       if (u?.name) userName = u.name;

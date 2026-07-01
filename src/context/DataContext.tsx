@@ -181,7 +181,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // ===== Activity Log Helper =====
   const addLog = useCallback(async (action: string, details: string, page: string) => {
     try {
-      const stored = sessionStorage.getItem("ddp_current_user");
+      const stored = localStorage.getItem("ddp_current_user");
       const currentUser = stored ? JSON.parse(stored) : null;
       const userName = currentUser?.name || "System";
       const supabase = getSupabaseClient();
@@ -352,11 +352,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       addLog("Edit User", `Mengubah data user: ${mapped.name}`, "Pengguna");
 
       // If the updated user is the current logged-in user, refresh auth state
-      const stored = sessionStorage.getItem("ddp_current_user");
+      const stored = localStorage.getItem("ddp_current_user");
       if (stored) {
         const current = JSON.parse(stored);
         if (current.id === id) {
-          sessionStorage.setItem("ddp_current_user", JSON.stringify(mapped));
+          localStorage.setItem("ddp_current_user", JSON.stringify(mapped));
         }
       }
 
@@ -394,7 +394,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     new_data: Record<string, any> | null;
   }) => {
     try {
-      const stored = sessionStorage.getItem("ddp_current_user");
+      const stored = localStorage.getItem("ddp_current_user");
       const currentUser = stored ? JSON.parse(stored) : null;
       if (!currentUser) return null;
 
@@ -436,7 +436,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const approveApproval = useCallback(async (id: number) => {
     try {
-      const stored = sessionStorage.getItem("ddp_current_user");
+      const stored = localStorage.getItem("ddp_current_user");
       const currentUser = stored ? JSON.parse(stored) : null;
       if (!currentUser) return;
 
@@ -534,7 +534,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       // If the approved change affected the current logged-in user, sync session storage
       if (approval.table_name === "users" && approval.record_id && currentUser) {
-        const stored = sessionStorage.getItem("ddp_current_user");
+        const stored = localStorage.getItem("ddp_current_user");
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.id === approval.record_id) {
@@ -545,7 +545,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
               .single();
             if (freshUser) {
               const mapped = mapUser(freshUser);
-              sessionStorage.setItem("ddp_current_user", JSON.stringify(mapped));
+              localStorage.setItem("ddp_current_user", JSON.stringify(mapped));
             }
           }
         }
@@ -559,7 +559,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const rejectApproval = useCallback(async (id: number, notes?: string) => {
     try {
-      const stored = sessionStorage.getItem("ddp_current_user");
+      const stored = localStorage.getItem("ddp_current_user");
       const currentUser = stored ? JSON.parse(stored) : null;
       if (!currentUser) return;
 
