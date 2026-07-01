@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowTimeoutWarning(false);
       setTimeoutCountdown(60);
       logout();
-      addLog("Logout", "User logout otomatis karena tidak ada aktivitas selama 30 menit", "Dashboard", user);
+      addLog("Logout", "User logout otomatis karena tidak ada aktivitas selama 10 jam", "Dashboard", user);
     };
 
     const startCountdown = () => {
@@ -178,16 +178,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowTimeoutWarning(false);
       setTimeoutCountdown(60);
 
-      // Tampilkan peringatan setelah 29 menit
+      // Tampilkan peringatan 60 detik sebelum 10 jam
       warningTimeout = setTimeout(() => {
         startCountdown();
-      }, 29 * 60 * 1000);
+      }, 10 * 60 * 60 * 1000 - 60 * 1000);
 
-      // Logout setelah 30 menit
+      // Logout setelah 10 jam
       timeout = setTimeout(() => {
         clearInterval(countdownInterval);
         doLogout();
-      }, 30 * 60 * 1000);
+      }, 10 * 60 * 60 * 1000);
     };
 
     const events = ["mousemove", "mousedown", "click", "keydown", "touchstart", "scroll", "wheel"];
