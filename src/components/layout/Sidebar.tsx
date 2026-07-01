@@ -14,7 +14,7 @@ const NAV_ITEMS = [
   { href: "/lototo", label: "Lototo", icon: Lock, badgeKey: "lototo" },
   { href: "/sg-maintenance", label: "SG Maintenance", icon: Wrench, badgeKey: "maintenance" },
   { href: "/switch-gear", label: "Switch Gear", icon: Server },
-  { href: "/laporan-harian", label: "Laporan Harian", icon: FileText },
+  { href: "/laporan-harian", label: "Laporan Lototo", icon: FileText },
   { href: "/aktivitas-log", label: "Aktifitas Log", icon: History },
   { href: "/pengguna", label: "Pengguna", icon: Users },
   { href: "/database-status", label: "DB Status", icon: Database },
