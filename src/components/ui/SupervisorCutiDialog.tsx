@@ -60,7 +60,7 @@ export default function SupervisorCutiDialog({ open, onClose, onConfirm }: Props
         {step === "tanya" ? (
           <>
             <h3 className="text-base font-semibold text-gray-900 mb-2">Konfirmasi Supervisor</h3>
-            <p className="text-sm text-gray-500 mb-6">Apakah Supervisor anda CUTI?</p>
+            <p className="text-sm text-gray-500 mb-6">Apakah Anda lembur/Supervisor anda CUTI?</p>
             <div className="flex items-center justify-end gap-3">
               <button
                 onClick={handleTidak}
