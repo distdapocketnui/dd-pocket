@@ -215,6 +215,19 @@ export interface Database {
         };
         Relationships: [];
       };
+      unit_pengaturan: {
+        Row: {
+          id: number;
+          nama: string;
+        };
+        Insert: {
+          nama: string;
+        };
+        Update: {
+          nama?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};

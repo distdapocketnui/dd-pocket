@@ -8,7 +8,7 @@ import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate } from "@/lib/date";
 import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3 } from "lucide-react";
 import LineChart from "@/components/ui/LineChart";
-import type { LaporanP2B } from "@/types";
+import type { LaporanP2B, UnitPengaturan } from "@/types";
 
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Lainnya"];
 const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
@@ -80,6 +80,28 @@ export default function LaporanP2BPage() {
   const isInspeksi = form.kegiatan === "Inspeksi";
   const isPengaturanBeban = form.kegiatan === "Pengaturan Beban";
   const isLainnya = form.kegiatan === "Lainnya";
+
+  // ── Unit Pengaturan (dropdown Unit Pindah) ──
+  const [unitPengaturan, setUnitPengaturan] = useState<UnitPengaturan[]>([]);
+  useEffect(() => {
+    const fetchUnitPengaturan = async () => {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase.from("unit_pengaturan").select("*").order("nama");
+      if (data) setUnitPengaturan(data);
+    };
+    fetchUnitPengaturan();
+  }, []);
+
+  const toggleUnitPindah = (nama: string) => {
+    const current = form.unit_pindah ? form.unit_pindah.split(", ") : [];
+    const idx = current.indexOf(nama);
+    if (idx >= 0) {
+      current.splice(idx, 1);
+    } else {
+      current.push(nama);
+    }
+    setForm({ ...form, unit_pindah: current.join(", ") });
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -690,20 +712,38 @@ _Dibuat oleh ${user?.name || "-"}_`;
                 </div>
               )}
 
-              {/* Unit Pindah — hanya untuk Pengaturan Beban */}
-              {isPengaturanBeban && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit yang Pindah</label>
-                  <input type="text" value={form.unit_pindah} onChange={(e) => setForm({ ...form, unit_pindah: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Unit yang pindah" />
-                </div>
-              )}
-
-              {/* Unit/Area — untuk Pengaturan Beban (bukan Inspeksi/Lainnya) */}
+              {/* Unit/Area — untuk Pengaturan Beban */}
               {isPengaturanBeban && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Unit/Area *</label>
                 <input type="text" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Contoh: GG-01" />
               </div>
+              )}
+
+              {/* Unit Pindah — hanya untuk Pengaturan Beban */}
+              {isPengaturanBeban && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit yang Pindah</label>
+                  <div className="max-h-40 overflow-y-auto border-2 border-gray-200 rounded-xl bg-gray-50 p-2 space-y-1">
+                    {unitPengaturan.map((u) => {
+                      const checked = form.unit_pindah.split(", ").includes(u.nama);
+                      return (
+                        <label key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-50 cursor-pointer text-sm">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleUnitPindah(u.nama)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          {u.nama}
+                        </label>
+                      );
+                    })}
+                    {unitPengaturan.length === 0 && (
+                      <p className="text-xs text-gray-400 text-center py-2">Memuat data...</p>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* Aktifitas — untuk Inspeksi & Lainnya */}

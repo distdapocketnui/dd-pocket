@@ -1,6 +1,11 @@
 // ===== Type Definitions =====
 
 export type SGStatus = "Aktif Lototo" | "Maintenance" | "Selesai";
+
+export interface UnitPengaturan {
+  id: number;
+  nama: string;
+}
 export type UserRole = "Admin" | "Manager" | "Operator" | "Supervisor" | "Visitor";
 export type UserStatus = "Aktif" | "Nonaktif";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
