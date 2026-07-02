@@ -29,23 +29,23 @@ export default function PenggunaPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<{
-    name: string; email: string; phone: string; unit: string; department: string;
+    name: string; email: string; phone: string; area: string; department: string;
     username: string; password: string; role: UserRole; regu: string; status: UserStatus;
   }>({
-    name: "", email: "", phone: "", unit: "", department: "", username: "", password: "", role: "Operator", regu: "", status: "Aktif",
+    name: "", email: "", phone: "", area: "", department: "", username: "", password: "", role: "Operator", regu: "", status: "Aktif",
   });
 
   const [showPassword, setShowPassword] = useState(false);
 
   const openAdd = () => {
     setEditId(null);
-    setForm({ name: "", email: "", phone: "", unit: "IT", department: "", username: "", password: "", role: "Operator", regu: "", status: "Aktif" });
+    setForm({ name: "", email: "", phone: "", area: "IT", department: "", username: "", password: "", role: "Operator", regu: "", status: "Aktif" });
     setModalOpen(true);
   };
 
   const openEdit = (u: User) => {
     setEditId(u.id);
-    setForm({ name: u.name, email: u.email, phone: u.phone, unit: u.unit, department: u.department, username: u.username, password: u.password, role: u.role, regu: u.regu, status: u.status });
+    setForm({ name: u.name, email: u.email, phone: u.phone, area: u.area, department: u.department, username: u.username, password: u.password, role: u.role, regu: u.regu, status: u.status });
     setModalOpen(true);
   };
 
@@ -84,7 +84,7 @@ export default function PenggunaPage() {
     },
     { key: "email", header: "Email", render: (u: User) => u.email },
     { key: "phone", header: "No. HP", render: (u: User) => u.phone || <span className="text-gray-300">—</span> },
-    { key: "unit", header: "Unit Kerja", render: (u: User) => u.unit },
+    { key: "area", header: "Unit Kerja", render: (u: User) => u.area },
     { key: "department", header: "Departemen", render: (u: User) => u.department },
     { key: "username", header: "Username", render: (u: User) => u.username },
     { key: "password", header: "Password", render: () => <span className="text-gray-300 font-mono">••••••</span> },
@@ -170,7 +170,7 @@ export default function PenggunaPage() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Unit Kerja</label>
-              <input type="text" required value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" />
+              <input type="text" required value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Departemen</label>

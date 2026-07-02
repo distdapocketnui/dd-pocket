@@ -52,7 +52,7 @@ export default function ProfilPage() {
   }, [refreshUser]);
 
   const [form, setForm] = useState({
-    name: "", email: "", phone: "", unit: "", department: "",
+    name: "", email: "", phone: "", area: "", department: "",
   });
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export default function ProfilPage() {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        unit: user.unit,
+        area: user.area,
         department: user.department,
       });
     }
@@ -121,7 +121,7 @@ export default function ProfilPage() {
   const infoFields = [
     { label: "Email", value: user.email, icon: Mail, color: "text-blue-600 bg-blue-50" },
     { label: "No. Handphone", value: user.phone || "—", icon: Phone, color: "text-emerald-600 bg-emerald-50" },
-    { label: "Unit Kerja", value: user.unit || "—", icon: Building2, color: "text-violet-600 bg-violet-50" },
+    { label: "Unit Kerja", value: user.area || "—", icon: Building2, color: "text-violet-600 bg-violet-50" },
     { label: "Departemen", value: user.department || "—", icon: Users, color: "text-amber-600 bg-amber-50" },
     { label: "Username", value: user.username, icon: User, color: "text-cyan-600 bg-cyan-50" },
     {
@@ -147,7 +147,7 @@ export default function ProfilPage() {
     { key: "name", label: "Nama Lengkap", type: "text", required: true },
     { key: "email", label: "Email", type: "email", required: true },
     { key: "phone", label: "No. Handphone", type: "tel", required: false },
-    { key: "unit", label: "Unit Kerja", type: "text", required: true },
+    { key: "area", label: "Unit Kerja", type: "text", required: true },
     { key: "department", label: "Departemen", type: "text", required: true },
   ] as const;
 
@@ -428,7 +428,7 @@ function ReguTeam({ regu }: { regu: string }) {
                   </td>
                   <td className="px-4 py-3.5 text-gray-600">{m.email}</td>
                   <td className="px-4 py-3.5 text-gray-600">{m.phone || <span className="text-gray-300">—</span>}</td>
-                  <td className="px-4 py-3.5 text-gray-600">{m.unit || <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3.5 text-gray-600">{m.area || <span className="text-gray-300">—</span>}</td>
                   <td className="px-4 py-3.5 text-center">
                     <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${
                       m.role === "Supervisor"

@@ -20,7 +20,7 @@ function mapToUser(raw: any): User {
     name: raw.name,
     email: raw.email,
     phone: raw.phone || "",
-    unit: raw.unit || "",
+    area: raw.area || "",
     department: raw.department || "",
     regu: raw.regu || "",
     username: raw.username,

@@ -15,7 +15,7 @@ export default function SwitchGearPage() {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   const unitVariants: Array<"blue" | "green" | "yellow" | "red"> = ["blue", "green", "yellow", "red"];
-  const counts = UNITS.map((u) => switchGears.filter((s) => s.unit === u).length);
+  const counts = UNITS.map((u) => switchGears.filter((s) => s.area === u).length);
 
   const columns = [
     { key: "name", header: "Switch Gear", render: (s: SwitchGear) => <span className="font-semibold">{s.name}</span> },
@@ -55,7 +55,7 @@ export default function SwitchGearPage() {
 
       {/* Per-unit tables */}
       {UNITS.map((unit) => {
-        const unitSG = switchGears.filter((s) => s.unit === unit);
+        const unitSG = switchGears.filter((s) => s.area === unit);
         return (
           <DataTable
             key={unit}
