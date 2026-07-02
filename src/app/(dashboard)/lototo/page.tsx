@@ -256,7 +256,7 @@ export default function LototoPage() {
     { key: "description", header: "Keterangan", render: (s: SwitchGear) => (
       <span className="truncate max-w-[150px] block" title={s.description}>{s.description}</span>
     ) },
-    ...(canEdit ? [{
+    ...(hasRole("Admin") ? [{
       key: "actions" as const, header: "Action", render: (s: SwitchGear) => (
         <div className="flex gap-1.5">
           <button onClick={() => openEdit(s)} className={`w-7 h-7 rounded flex items-center justify-center text-xs transition-colors ${isOperator ? "bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white" : "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"}`} title="Edit">
