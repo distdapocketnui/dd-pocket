@@ -256,7 +256,7 @@ export default function LototoPage() {
     { key: "description", header: "Keterangan", render: (s: SwitchGear) => (
       <span className="truncate max-w-[150px] block" title={s.description}>{s.description}</span>
     ) },
-    ...(hasRole("Admin") ? [{
+    ...(canEdit ? [{
       key: "actions" as const, header: "Action", render: (s: SwitchGear) => (
         <div className="flex gap-1.5">
           <button onClick={() => openEdit(s)} className={`w-7 h-7 rounded flex items-center justify-center text-xs transition-colors ${isOperator ? "bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white" : "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"}`} title="Edit">
@@ -301,7 +301,7 @@ export default function LototoPage() {
         searchPlaceholder="Cari..."
         actions={
           canEdit ? (
-            <button onClick={openAdd} className="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
+            <button onClick={openAdd} className="btn-glow px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 whitespace-nowrap">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Tambah
             </button>

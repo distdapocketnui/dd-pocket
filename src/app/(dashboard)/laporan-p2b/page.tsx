@@ -10,7 +10,7 @@ import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity,
 import LineChart from "@/components/ui/LineChart";
 import type { LaporanP2B, UnitPengaturan } from "@/types";
 
-const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Lainnya"];
+const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Power House", "Power Plant", "Tambang", "Lainnya"];
 const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
 const KEGIATAN_OPTIONS = ["Pengaturan Beban", "Inspeksi", "Lainnya"];
 const KONDISI_OPTIONS = ["Normal", "Rusak", "Perbaikan"];
@@ -118,6 +118,7 @@ export default function LaporanP2BPage() {
   const [endDate, setEndDate] = useState(fmtLocal(lastDay));
   const [usernameFilter, setUsernameFilter] = useState("");
   const [kegiatanFilter, setKegiatanFilter] = useState("");
+  const [showConfirmDownload, setShowConfirmDownload] = useState(false);
 
   // Unique usernames from data (dibatasi sesuai regu untuk Manager/Visitor)
   const usernames = useMemo(() => {
@@ -659,8 +660,8 @@ _Dibuat oleh ${user?.name || "-"}_`;
 
         {/* Baris Download */}
         <button
-          onClick={handleDownloadPdf}
-          className="w-full sm:w-auto sm:ml-auto p-2 sm:px-3 sm:py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
+          onClick={() => setShowConfirmDownload(true)}
+          className="w-full sm:w-auto sm:ml-auto p-2 sm:px-3 sm:py-1.5 bg-rose-600 text-white text-xs font-medium rounded-lg hover:bg-rose-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
         >
           <Download size={14} />
           <span>Download PDF</span>
@@ -693,7 +694,7 @@ _Dibuat oleh ${user?.name || "-"}_`;
               canEdit && (
                 <button
                   onClick={openAdd}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+                  className="btn-glow flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
                 >
                   <Plus size={16} /> Tambah
                 </button>
@@ -857,6 +858,20 @@ _Dibuat oleh ${user?.name || "-"}_`;
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 {editing ? "Simpan" : "Tambah"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Download ── */}
+      {showConfirmDownload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setShowConfirmDownload(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Konfirmasi Download</h3>
+            <p className="text-sm text-gray-500 mb-6">Apakah data yang ingin di download sudah benar?</p>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setShowConfirmDownload(false)} className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Cancel</button>
+              <button onClick={() => { setShowConfirmDownload(false); handleDownloadPdf(); }} className="px-4 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors">OK</button>
             </div>
           </div>
         </div>

@@ -29,4 +29,42 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
   }
+
+  /* Glow button animation — Opsi 4 Combined */
+  .btn-glow {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+  }
+  .btn-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.3) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: btnShimmer 4s ease-in-out infinite;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  .btn-glow::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 14px;
+    z-index: -1;
+    background-color: #2563eb;
+    animation: btnPulse 2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .btn-glow:hover {
+    transform: scale(1.04);
+  }
+  @keyframes btnShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @keyframes btnPulse {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.06); }
+  }
 }
