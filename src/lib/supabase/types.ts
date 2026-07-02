@@ -9,7 +9,7 @@ export interface Database {
           name: string;
           email: string;
           phone: string;
-          unit: string;
+          area: string;
           department: string;
           username: string;
           password: string;
@@ -23,7 +23,7 @@ export interface Database {
           name: string;
           email: string;
           phone?: string;
-          unit?: string;
+          area?: string;
           department?: string;
           username: string;
           password: string;
@@ -35,7 +35,7 @@ export interface Database {
           name?: string;
           email?: string;
           phone?: string;
-          unit?: string;
+          area?: string;
           department?: string;
           username?: string;
           password?: string;
@@ -50,7 +50,7 @@ export interface Database {
           id: number;
           name: string;
           location: string;
-          unit: string;
+          area: string;
           status: string;
           pic: string;
           requester: string;
@@ -66,7 +66,7 @@ export interface Database {
         Insert: {
           name: string;
           location?: string;
-          unit?: string;
+          area?: string;
           status?: string;
           pic?: string;
           requester?: string;
@@ -80,7 +80,7 @@ export interface Database {
         Update: {
           name?: string;
           location?: string;
-          unit?: string;
+          area?: string;
           status?: string;
           pic?: string;
           requester?: string;
@@ -153,6 +153,56 @@ export interface Database {
           status?: string;
           reviewed_by?: number | null;
           review_notes?: string;
+        };
+        Relationships: [];
+      };
+      laporan_p2b: {
+        Row: {
+          id: number;
+          tanggal_jam: string;
+          lokasi: string;
+          posisi_power: string;
+          area: string;
+          pic: string;
+          kegiatan: string;
+          kondisi: string;
+          temuan: string;
+          tindak_lanjut: string;
+          keterangan: string;
+          nama: string;
+          regu: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          tanggal_jam?: string;
+          lokasi: string;
+          posisi_power: string;
+          area: string;
+          pic: string;
+          kegiatan: string;
+          kondisi?: string;
+          temuan?: string;
+          tindak_lanjut?: string;
+          keterangan?: string;
+          nama?: string;
+          regu?: string;
+          created_by?: string;
+        };
+        Update: {
+          tanggal_jam?: string;
+          lokasi?: string;
+          posisi_power?: string;
+          area?: string;
+          pic?: string;
+          kegiatan?: string;
+          kondisi?: string;
+          temuan?: string;
+          tindak_lanjut?: string;
+          keterangan?: string;
+          nama?: string;
+          regu?: string;
         };
         Relationships: [];
       };

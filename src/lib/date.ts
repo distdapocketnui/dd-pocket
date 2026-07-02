@@ -51,7 +51,19 @@ export function isInRange(dateStr: string, startDate: string, endDate: string): 
 /** Convert "YYYY-MM-DDTHH:mm" (datetime-local) to Indonesian format "DD/MM/YYYY HH:mm" */
 export function toIndonesianDate(datetime: string): string {
   if (!datetime) return "";
-  const d = new Date(datetime + ":00");
+
+  // Hapus timezone suffix (+00:00, +00, Z, dll) agar format bersih
+  const clean = datetime
+    .replace(/[Zz].*$/, "")
+    .replace(/[+-]\d{2}:?\d{2}$/, "")
+    .trim();
+
+  // Tambah :00 jika tidak ada detik (format dari datetime-local: YYYY-MM-DDTHH:mm)
+  const normalized = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(clean)
+    ? clean + ":00"
+    : clean;
+
+  const d = new Date(normalized);
   if (isNaN(d.getTime())) return "";
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");

@@ -32,6 +32,14 @@ export default function FilterBar({ startDate, endDate, onStartDateChange, onEnd
           onChange={(e) => onEndDateChange(e.target.value)}
           className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
         />
+        {(startDate || endDate) && (
+          <button
+            onClick={() => { onStartDateChange(""); onEndDateChange(""); }}
+            className="px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors whitespace-nowrap"
+          >
+            Clear
+          </button>
+        )}
         {showDownload && (
           <button
             onClick={onDownloadPdf}

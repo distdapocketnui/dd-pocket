@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  LayoutDashboard, Lock, Wrench, Server, FileText, History, Users, ChevronLeft, X, Database,
+  LayoutDashboard, Lock, Wrench, Server, FileText, History, Users, ChevronLeft, X, Database, ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -11,10 +11,11 @@ import { getInitials } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/lototo", label: "Lototo", icon: Lock, badgeKey: "lototo" },
+  { href: "/lototo", label: "Lototo", icon: Lock, badgeKey: "lototo", glow: "red" },
   { href: "/sg-maintenance", label: "SG Maintenance", icon: Wrench, badgeKey: "maintenance" },
   { href: "/switch-gear", label: "Switch Gear", icon: Server },
   { href: "/laporan-harian", label: "Laporan Lototo", icon: FileText },
+  { href: "/laporan-p2b", label: "Laporan P2B", icon: ClipboardList, glow: "green" },
   { href: "/aktivitas-log", label: "Aktifitas Log", icon: History },
   { href: "/pengguna", label: "Pengguna", icon: Users },
   { href: "/database-status", label: "DB Status", icon: Database },
@@ -84,7 +85,10 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               <item.icon size={18} className="flex-shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="whitespace-nowrap">{item.label}</span>
+                  <span className={`whitespace-nowrap ${
+                    item.glow === "red" ? "text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.7)] font-bold" :
+                    item.glow === "green" ? "text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.7)] font-bold" : ""
+                  }`}>{item.label}</span>
                   {item.badge && (
                     <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                       {item.badge}

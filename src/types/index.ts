@@ -68,3 +68,22 @@ export interface StatsData {
   maintenance: number;
   selesai: number;
 }
+
+export interface LaporanP2B {
+  id: number;
+  tanggal_jam: string;
+  lokasi: string;
+  posisi_power: "" | "BTG" | "PLN";
+  area: string;
+  pic: string;
+  kegiatan: "Pengaturan Beban" | "Inspeksi";
+  kondisi: "" | "Normal" | "Rusak" | "Perbaikan";
+  temuan: string;
+  tindak_lanjut: string;
+  keterangan: string;
+  nama: string;
+  regu: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}

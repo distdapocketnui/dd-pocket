@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import StatCard from "@/components/ui/StatCard";
@@ -9,17 +9,19 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import Modal from "@/components/ui/Modal";
 import FilterBar from "@/components/ui/FilterBar";
 import { SwitchGear, SGStatus } from "@/types";
-import { Layers, CheckCircle, Wrench, CheckCheck, Image as ImageIcon, X } from "lucide-react";
+import { Layers, CheckCircle, Wrench, CheckCheck, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { compressImage } from "@/lib/image";
 import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentDatetimeLocal } from "@/lib/date";
+import { initGoogleDrive, uploadToGoogleDrive } from "@/lib/google-drive";
 
 export default function SGMaintenancePage() {
   const { switchGears, addSwitchGear, updateSwitchGear, deleteSwitchGear, createApproval } = useData();
   const { user, hasRole } = useAuth();
   const isOperator = user?.role === "Operator" || user?.role === "Supervisor";
+  const isDayshiftOperator = user?.role === "Operator" && user?.regu === "Dayshift";
   const isVisitor = user?.role === "Visitor";
-  const canEdit = hasRole("Admin", "Operator", "Supervisor");
+  const canEdit = hasRole("Admin", "Supervisor") || (hasRole("Operator") && !isDayshiftOperator);
   const canDirect = hasRole("Admin");
 
   const [startDate, setStartDate] = useState("");
@@ -29,7 +31,14 @@ export default function SGMaintenancePage() {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [imageLoading, setImageLoading] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [uploadingDrive, setUploadingDrive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Init Google Drive
+  useEffect(() => {
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    if (clientId) initGoogleDrive(clientId);
+  }, []);
   const [form, setForm] = useState<{
     name: string; location: string; unit: string; status: SGStatus;
     pic: string; requester: string; notifNo: string; lototoNo: string;
@@ -123,13 +132,33 @@ export default function SGMaintenancePage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const payload = {
       ...form,
       activeTime: toIndonesianDate(form.activeTime) || form.activeTime,
       finishTime: toIndonesianDate(form.finishTime) || form.finishTime,
     };
+
+    // Upload gambar baru (base64) ke Google Drive
+    if (payload.image && payload.image.startsWith("data:")) {
+      if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+        alert("GOOGLE_CLIENT_ID belum diatur di .env.local");
+        return;
+      }
+      setUploadingDrive(true);
+      try {
+        const ts = Date.now();
+        const name = `SG_${payload.name || "unknown"}_${ts}`;
+        payload.image = await uploadToGoogleDrive(payload.image, name);
+      } catch (err: any) {
+        alert("Gagal upload gambar ke Google Drive: " + (err.message || err));
+        setUploadingDrive(false);
+        return;
+      }
+      setUploadingDrive(false);
+    }
+
     if (editId) {
       if (isOperator) {
         const oldItem = switchGears.find(s => s.id === editId);
@@ -161,8 +190,22 @@ export default function SGMaintenancePage() {
     setModalOpen(false);
   };
 
+  const getDrivePreviewUrl = (url: string) => {
+    const match = url.match(/[?&]id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
+    const fileId = match?.[1];
+    return fileId
+      ? `https://drive.google.com/file/d/${fileId}/preview`
+      : null;
+  };
+
   const handleImageClick = (sg: SwitchGear) => {
-    if (sg.image) setLightboxImg(sg.image);
+    if (!sg.image) return;
+    if (sg.image.includes("drive.google.com")) {
+      const previewUrl = getDrivePreviewUrl(sg.image);
+      if (previewUrl) setLightboxImg(previewUrl);
+    } else {
+      setLightboxImg(sg.image);
+    }
   };
 
   const columns = [
@@ -244,8 +287,16 @@ export default function SGMaintenancePage() {
       {/* Lightbox */}
       {lightboxImg && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setLightboxImg(null)}>
-          <div className="relative max-w-3xl max-h-[90vh]">
-            <img src={lightboxImg} alt="Gambar Switch Gear" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl" />
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            {lightboxImg.includes("/preview") ? (
+              <iframe
+                src={lightboxImg}
+                className="w-full h-[80vh] rounded-xl shadow-2xl"
+                allow="autoplay"
+              />
+            ) : (
+              <img src={lightboxImg} alt="Gambar" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl mx-auto" />
+            )}
             <button onClick={() => setLightboxImg(null)} className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors">
               <X size={16} />
             </button>
@@ -258,9 +309,9 @@ export default function SGMaintenancePage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editId ? "Edit Switch Gear" : "Tambah Switch Gear"}
-        footer={<button type="submit" form="sgForm" className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Simpan
+        footer={<button type="submit" form="sgForm" disabled={uploadingDrive} className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+          {uploadingDrive ? <Loader2 size={14} className="animate-spin" /> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>}
+          {uploadingDrive ? "Mengupload..." : "Simpan"}
         </button>}
       >
         <form id="sgForm" onSubmit={handleSubmit} className="space-y-4">

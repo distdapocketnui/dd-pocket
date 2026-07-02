@@ -222,6 +222,7 @@ export default function PenggunaPage() {
                 <option value="B">Regu B</option>
                 <option value="C">Regu C</option>
                 <option value="D">Regu D</option>
+                <option value="Dayshift">Dayshift</option>
               </select>
             </div>
             <div>
