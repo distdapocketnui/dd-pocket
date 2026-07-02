@@ -16,6 +16,48 @@ const KEGIATAN_OPTIONS = ["Pengaturan Beban", "Inspeksi", "Lainnya"];
 const KONDISI_OPTIONS = ["Normal", "Rusak", "Perbaikan"];
 const LEVEL_TEGANGAN_OPTIONS = ["70 kV", "6,3 kV"];
 
+function UnitPindahDropdown({ unitPengaturan, value, onChange }: { unitPengaturan: UnitPengaturan[]; value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? value.split(", ").filter(Boolean) : [];
+
+  const toggle = (nama: string) => {
+    const idx = selected.indexOf(nama);
+    if (idx >= 0) selected.splice(idx, 1);
+    else selected.push(nama);
+    onChange(selected.join(", "));
+  };
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium text-gray-700 mb-1">Unit yang Pindah</label>
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm text-left focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+      >
+        {selected.length > 0
+          ? <span className="text-gray-900">{selected.length} unit dipilih</span>
+          : <span className="text-gray-400">Pilih unit...</span>}
+        <span className="float-right mt-0.5">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto border border-gray-200 rounded-xl bg-white shadow-lg p-1.5 space-y-0.5">
+            {unitPengaturan.map((u) => {
+              const checked = selected.includes(u.nama);
+              return (
+                <label key={u.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 cursor-pointer text-sm">
+                  <input type="checkbox" checked={checked} onChange={() => toggle(u.nama)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  {u.nama}
+                </label>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function formatDate(iso: string) {
   if (!iso) return "-";
   const d = new Date(iso);
@@ -91,17 +133,6 @@ export default function LaporanP2BPage() {
     };
     fetchUnitPengaturan();
   }, []);
-
-  const toggleUnitPindah = (nama: string) => {
-    const current = form.unit_pindah ? form.unit_pindah.split(", ") : [];
-    const idx = current.indexOf(nama);
-    if (idx >= 0) {
-      current.splice(idx, 1);
-    } else {
-      current.push(nama);
-    }
-    setForm({ ...form, unit_pindah: current.join(", ") });
-  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -721,30 +752,7 @@ _Dibuat oleh ${user?.name || "-"}_`;
               )}
 
               {/* Unit Pindah — hanya untuk Pengaturan Beban */}
-              {isPengaturanBeban && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit yang Pindah</label>
-                  <div className="max-h-40 overflow-y-auto border-2 border-gray-200 rounded-xl bg-gray-50 p-2 space-y-1">
-                    {unitPengaturan.map((u) => {
-                      const checked = form.unit_pindah.split(", ").includes(u.nama);
-                      return (
-                        <label key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-blue-50 cursor-pointer text-sm">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleUnitPindah(u.nama)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          {u.nama}
-                        </label>
-                      );
-                    })}
-                    {unitPengaturan.length === 0 && (
-                      <p className="text-xs text-gray-400 text-center py-2">Memuat data...</p>
-                    )}
-                  </div>
-                </div>
-              )}
+              {isPengaturanBeban && <UnitPindahDropdown unitPengaturan={unitPengaturan} value={form.unit_pindah} onChange={(v) => setForm({ ...form, unit_pindah: v })} />}
 
               {/* Aktifitas — untuk Inspeksi & Lainnya */}
               {(isInspeksi || isLainnya) && (
