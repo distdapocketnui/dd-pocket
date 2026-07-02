@@ -152,6 +152,21 @@ export default function LaporanP2BPage() {
 
   useEffect(() => {
     fetchData();
+
+    // Auto-refresh setiap 30 detik (real-time)
+    let timer: ReturnType<typeof setInterval>;
+    const start = () => { timer = setInterval(fetchData, 30000); };
+    const stop = () => { if (timer) clearInterval(timer); };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") { fetchData(); start(); }
+      else { stop(); }
+    };
+
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => { stop(); document.removeEventListener("visibilitychange", handleVisibility); };
   }, [fetchData]);
 
   // ── Filter by date range + username + kegiatan + regu ──
