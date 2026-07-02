@@ -162,6 +162,9 @@ export interface Database {
           tanggal_jam: string;
           lokasi: string;
           posisi_power: string;
+          level_tegangan: string;
+          unit_pindah: string;
+          aktifitas: string;
           area: string;
           pic: string;
           kegiatan: string;
@@ -179,6 +182,9 @@ export interface Database {
           tanggal_jam?: string;
           lokasi: string;
           posisi_power: string;
+          level_tegangan?: string;
+          unit_pindah?: string;
+          aktifitas?: string;
           area: string;
           pic: string;
           kegiatan: string;
@@ -194,6 +200,9 @@ export interface Database {
           tanggal_jam?: string;
           lokasi?: string;
           posisi_power?: string;
+          level_tegangan?: string;
+          unit_pindah?: string;
+          aktifitas?: string;
           area?: string;
           pic?: string;
           kegiatan?: string;

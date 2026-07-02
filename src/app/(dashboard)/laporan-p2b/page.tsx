@@ -11,9 +11,10 @@ import LineChart from "@/components/ui/LineChart";
 import type { LaporanP2B } from "@/types";
 
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Lainnya"];
-const POSISI_POWER_OPTIONS = ["BTG", "PLN"];
+const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
 const KEGIATAN_OPTIONS = ["Pengaturan Beban", "Inspeksi"];
 const KONDISI_OPTIONS = ["Normal", "Rusak", "Perbaikan"];
+const LEVEL_TEGANGAN_OPTIONS = ["70 kV", "6,3 kV"];
 
 function formatDate(iso: string) {
   if (!iso) return "-";
@@ -28,8 +29,11 @@ function emptyForm(user?: { name: string; regu: string }): Omit<LaporanP2B, "id"
   return {
     tanggal_jam: new Date().toISOString().slice(0, 16),
     lokasi: "",
+    level_tegangan: "",
     kondisi: "",
     posisi_power: "",
+    unit_pindah: "",
+    aktifitas: "",
     area: "",
     pic: "",
     kegiatan: "Pengaturan Beban",
@@ -125,8 +129,11 @@ export default function LaporanP2BPage() {
       const updateData: any = {
         tanggal_jam: form.tanggal_jam,
         lokasi: form.lokasi,
+        level_tegangan: form.level_tegangan || "",
         kondisi: form.kondisi || "",
         posisi_power: form.posisi_power || "",
+        unit_pindah: form.unit_pindah || "",
+        aktifitas: form.aktifitas || "",
         area: form.area,
         pic: form.pic,
         kegiatan: form.kegiatan,
@@ -186,8 +193,11 @@ export default function LaporanP2BPage() {
     setForm({
       tanggal_jam: item.tanggal_jam ? item.tanggal_jam.slice(0, 16) : "",
       lokasi: item.lokasi,
+      level_tegangan: item.level_tegangan || "",
       kondisi: item.kondisi || "",
-      posisi_power: item.posisi_power as "BTG" | "PLN",
+      posisi_power: item.posisi_power as "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN",
+      unit_pindah: item.unit_pindah || "",
+      aktifitas: item.aktifitas || "",
       area: item.area,
       pic: item.pic,
       kegiatan: item.kegiatan as "Pengaturan Beban" | "Inspeksi",
@@ -217,6 +227,7 @@ export default function LaporanP2BPage() {
     const detail =
       r.kegiatan === "Inspeksi"
         ? `Lokasi : _${r.lokasi}_
+Level Tegangan : _${r.level_tegangan || "-"}_
 Kondisi : _${r.kondisi || "-"}_
 Unit/Area : _${r.area}_
 PIC : _${r.pic}_
@@ -224,8 +235,11 @@ Temuan : _${r.temuan || "-"}_
 Tindak Lanjut : _${r.tindak_lanjut || "-"}_
 Keterangan : _${r.keterangan || "-"}`
         : `Lokasi : _${r.lokasi}_
+Level Tegangan : _${r.level_tegangan || "-"}_
 Posisi Power : _${r.posisi_power || "-"}_
 Unit/Area : _${r.area}_
+Unit Pindah : _${r.unit_pindah || "-"}_
+Aktifitas : _${r.aktifitas || "-"}_
 PIC : _${r.pic}_
 Keterangan : _${r.keterangan || "-"}_`;
 
@@ -247,16 +261,19 @@ _Dibuat oleh ${user?.name || "-"}_`;
   const handleDownloadPdf = () => {
     const periodLabel = formatPeriod(startDate, endDate);
     const pdfColumns = [
-      "Tanggal Jam", "Kegiatan", "Lokasi", "Posisi Power", "Unit/Area", "Kondisi", "PIC",
+      "Tanggal Jam", "Kegiatan", "Lokasi", "Level Tegangan", "Posisi Power", "Unit/Area", "Kondisi", "Unit Pindah", "Aktifitas", "PIC",
       "Temuan", "Tindak Lanjut", "Keterangan", "Nama", "Regu",
     ];
     const pdfRows = filtered.map((r) => [
       toIndonesianDate(r.tanggal_jam),
       r.kegiatan,
       r.lokasi,
+      r.level_tegangan || "-",
       r.posisi_power || "-",
       r.area,
       r.kondisi || "-",
+      r.unit_pindah || "-",
+      r.aktifitas || "-",
       r.pic,
       r.temuan || "-",
       r.tindak_lanjut || "-",
@@ -297,18 +314,36 @@ _Dibuat oleh ${user?.name || "-"}_`;
     ),
   };
 
+  const levelTeganganCol = {
+    key: "level_tegangan",
+    header: "Level Tegangan",
+    render: (r: LaporanP2B) =>
+      r.level_tegangan ? (
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{r.level_tegangan}</span>
+      ) : (
+        <span className="text-xs text-gray-300">—</span>
+      ),
+  };
+
   const posisiPowerCol = {
     key: "posisi_power",
     header: "Posisi Power",
     render: (r: LaporanP2B) =>
       r.posisi_power ? (
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-          r.posisi_power === "BTG" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+          r.posisi_power === "BTG" ? "bg-green-100 text-green-700" :
+          r.posisi_power === "PLN" ? "bg-yellow-100 text-yellow-700" :
+          r.posisi_power === "PLN ke BTG" ? "bg-blue-100 text-blue-700" :
+          r.posisi_power === "BTG ke PLN" ? "bg-purple-100 text-purple-700" :
+          "bg-gray-100 text-gray-600"
         }`}>{r.posisi_power}</span>
       ) : (
         <span className="text-xs text-gray-300">—</span>
       ),
   };
+
+  const unitPindahCol = { key: "unit_pindah", header: "Unit Pindah", render: (r: LaporanP2B) => r.unit_pindah || "-" };
+  const aktifitasCol = { key: "aktifitas", header: "Aktifitas", render: (r: LaporanP2B) => r.aktifitas || "-" };
 
   const kondisiCol = {
     key: "kondisi",
@@ -388,7 +423,10 @@ _Dibuat oleh ${user?.name || "-"}_`;
   const pengaturanBebanColumns = [
     tanggalJamCol,
     lokasiCol,
+    levelTeganganCol,
     posisiPowerCol,
+    unitPindahCol,
+    aktifitasCol,
     areaCol,
     picCol,
     keteranganCol,
@@ -401,6 +439,7 @@ _Dibuat oleh ${user?.name || "-"}_`;
   const inspeksiColumns = [
     tanggalJamCol,
     lokasiCol,
+    levelTeganganCol,
     kondisiCol,
     areaCol,
     picCol,
@@ -586,13 +625,22 @@ _Dibuat oleh ${user?.name || "-"}_`;
                 </select>
               </div>
 
+              {/* Level Tegangan */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Level Tegangan</label>
+                <select value={form.level_tegangan} onChange={(e) => setForm({ ...form, level_tegangan: e.target.value as "" | "70 kV" | "6,3 kV" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
+                  <option value="">Pilih Level Tegangan</option>
+                  {LEVEL_TEGANGAN_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+
               {/* Posisi Power — hanya tampil jika bukan Inspeksi */}
               {!isInspeksi && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power *</label>
                   <select
                     value={form.posisi_power}
-                    onChange={(e) => setForm({ ...form, posisi_power: e.target.value as "BTG" | "PLN" })}
+                    onChange={(e) => setForm({ ...form, posisi_power: e.target.value as "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN" })}
                     className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
                       form.posisi_power === "BTG"
                         ? "border-green-400 ring-green-500/20 text-green-700"
@@ -606,6 +654,20 @@ _Dibuat oleh ${user?.name || "-"}_`;
                   </select>
                 </div>
               )}
+
+              {/* Unit Pindah — hanya tampil jika bukan Inspeksi */}
+              {!isInspeksi && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unit yang Pindah</label>
+                  <input type="text" value={form.unit_pindah} onChange={(e) => setForm({ ...form, unit_pindah: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Unit yang pindah" />
+                </div>
+              )}
+
+              {/* Aktifitas */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Aktifitas</label>
+                <textarea value={form.aktifitas} onChange={(e) => setForm({ ...form, aktifitas: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none" placeholder="Aktifitas" />
+              </div>
 
               {/* Area */}
               <div>

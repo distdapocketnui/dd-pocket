@@ -73,7 +73,10 @@ export interface LaporanP2B {
   id: number;
   tanggal_jam: string;
   lokasi: string;
-  posisi_power: "" | "BTG" | "PLN";
+  posisi_power: "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN";
+  level_tegangan: "" | "70 kV" | "6,3 kV";
+  unit_pindah: string;
+  aktifitas: string;
   area: string;
   pic: string;
   kegiatan: "Pengaturan Beban" | "Inspeksi";

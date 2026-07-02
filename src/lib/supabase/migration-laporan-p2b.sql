@@ -23,3 +23,6 @@ ALTER TABLE laporan_p2b ADD COLUMN IF NOT EXISTS kondisi TEXT NOT NULL DEFAULT '
 
 -- Nonaktifkan RLS — kontrol akses ditangani di kode aplikasi
 ALTER TABLE laporan_p2b DISABLE ROW LEVEL SECURITY;
+ALTER TABLE laporan_p2b ADD COLUMN IF NOT EXISTS level_tegangan TEXT NOT NULL DEFAULT '';
+ALTER TABLE laporan_p2b ADD COLUMN IF NOT EXISTS unit_pindah TEXT NOT NULL DEFAULT '';
+ALTER TABLE laporan_p2b ADD COLUMN IF NOT EXISTS aktifitas TEXT NOT NULL DEFAULT '';
