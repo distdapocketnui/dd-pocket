@@ -194,7 +194,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 "bg-emerald-50/90 text-emerald-700"
                               }`}>{a.new_data.status}</span>}
                               {a.new_data.location && <p className="text-xs text-gray-400">Lokasi: {a.new_data.location}</p>}
-                              {a.new_data.unit && <p className="text-xs text-gray-400">Unit: {a.new_data.unit}</p>}
+                              {(a.new_data.area || a.new_data.unit) && <p className="text-xs text-gray-400">Area: {a.new_data.area || a.new_data.unit}</p>}
                             </div>
                           )}
                           {a.action_type === "delete" && a.old_data && (

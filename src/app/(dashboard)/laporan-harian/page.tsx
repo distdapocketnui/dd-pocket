@@ -23,9 +23,9 @@ export default function LaporanHarianPage() {
   const handleDownloadPdf = () => {
     const periodLabel = formatPeriod(startDate, endDate);
 
-    const columns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
+    const columns = ["Switch Gear", "Lokasi", "Area", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
     const rows = filteredSG.map((s) => [
-      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
+      s.name, s.location, s.area, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
     ]);
 
     downloadPdf({
@@ -46,7 +46,7 @@ export default function LaporanHarianPage() {
 
   Switch Gear : _${s.name}_
   Lokasi : _${s.location}_
-  Unit : _${s.unit}_
+  Area : _${s.area}_
   Status : _${s.status}_
   PIC : _${s.pic}_
   No. Notif : _${s.notifNo || "-"}_
@@ -65,7 +65,7 @@ export default function LaporanHarianPage() {
   const columns = [
     { key: "name", header: "Switch Gear", render: (s: SwitchGear) => <span className="font-semibold">{s.name}</span> },
     { key: "location", header: "Lokasi", render: (s: SwitchGear) => s.location },
-    { key: "unit", header: "Unit", render: (s: SwitchGear) => s.unit },
+    { key: "area", header: "Area", render: (s: SwitchGear) => s.area },
     { key: "status", header: "Status", render: (s: SwitchGear) => <StatusBadge status={s.status} /> },
     { key: "pic", header: "PIC", render: (s: SwitchGear) => s.pic },
     { key: "notifNo", header: "No. Notif", render: (s: SwitchGear) => s.notifNo || "-" },

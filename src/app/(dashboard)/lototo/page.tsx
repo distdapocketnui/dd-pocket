@@ -59,7 +59,7 @@ export default function LototoPage() {
   const handleDownloadPdf = () => {
     const pdfColumns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
     const rows = filteredSG.map((s) => [
-      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
+      s.name, s.location, s.area, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
     ]);
     downloadPdf({
       title: "Laporan Monitoring Switch Gear",
@@ -85,7 +85,7 @@ export default function LototoPage() {
     setEditId(sg.id);
     setImagePreview(sg.image || "");
     setForm({
-      name: sg.name, location: sg.location, unit: sg.unit, status: sg.status,
+      name: sg.name, location: sg.location, area: sg.area, status: sg.status,
       pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
       description: sg.description, image: sg.image || "",
       activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
@@ -212,7 +212,7 @@ export default function LototoPage() {
   const columns = [
     { key: "name", header: "Switch Gear", render: (s: SwitchGear) => <span className="font-semibold">{s.name}</span> },
     { key: "location", header: "Lokasi", render: (s: SwitchGear) => s.location },
-    { key: "unit", header: "Unit", render: (s: SwitchGear) => s.unit },
+    { key: "area", header: "Area", render: (s: SwitchGear) => s.area },
     { key: "status", header: "Status", render: (s: SwitchGear) => <StatusBadge status={s.status} /> },
     { key: "pic", header: "PIC", render: (s: SwitchGear) => s.pic },
     { key: "notifNo", header: "No. Notif", render: (s: SwitchGear) => s.notifNo },
