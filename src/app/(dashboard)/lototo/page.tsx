@@ -89,7 +89,7 @@ export default function LototoPage() {
       pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
       description: sg.description, image: sg.image || "",
       activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
-      finishTime: toDatetimeLocal(sg.finishTime) || getCurrentDatetimeLocal(),
+      finishTime: sg.status === "Selesai" ? (toDatetimeLocal(sg.finishTime) || getCurrentDatetimeLocal()) : "",
     });
     setModalOpen(true);
   };
@@ -137,7 +137,7 @@ export default function LototoPage() {
     const payload = {
       ...form,
       activeTime: toIndonesianDate(form.activeTime) || form.activeTime,
-      finishTime: toIndonesianDate(form.finishTime) || form.finishTime,
+      finishTime: form.status === "Selesai" ? (toIndonesianDate(form.finishTime) || form.finishTime) : "",
     };
 
     // Upload gambar baru (base64) ke Google Drive
