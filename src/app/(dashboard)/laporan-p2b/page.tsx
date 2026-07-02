@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import DataTable from "@/components/ui/DataTable";
-import { downloadPdf } from "@/lib/pdf";
+import { downloadPdfMulti } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate } from "@/lib/date";
 import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3 } from "lucide-react";
 import LineChart from "@/components/ui/LineChart";
@@ -341,36 +341,49 @@ _Dibuat oleh ${user?.name || "-"}_`;
   // ── PDF download ──
   const handleDownloadPdf = () => {
     const periodLabel = formatPeriod(startDate, endDate);
-    const pdfColumns = [
-      "Tanggal Jam", "Kegiatan", "Lokasi", "Level Tegangan", "Posisi Power", "Unit/Area", "Kondisi", "Unit Pindah", "Aktifitas", "PIC",
-      "Temuan", "Tindak Lanjut", "Keterangan", "Nama", "Regu",
-    ];
-    const pdfRows = filtered.map((r) => [
-      toIndonesianDate(r.tanggal_jam),
-      r.kegiatan,
-      r.lokasi,
-      r.level_tegangan || "-",
-      r.posisi_power || "-",
-      r.area,
-      r.kondisi || "-",
-      r.unit_pindah || "-",
-      r.aktifitas || "-",
-      r.pic,
-      r.temuan || "-",
-      r.tindak_lanjut || "-",
-      r.keterangan || "-",
-      r.nama || "-",
-      r.regu || "-",
+
+    const toDate = (iso: string) => toIndonesianDate(iso);
+
+    const pengaturanRows = pengaturanBebanData.map((r) => [
+      toDate(r.tanggal_jam), r.lokasi, r.level_tegangan || "-",
+      r.posisi_power || "-", r.area, r.unit_pindah || "-",
+      r.pic, r.keterangan || "-", r.nama || "-", r.regu || "-",
+    ]);
+
+    const inspeksiRows = inspeksiData.map((r) => [
+      toDate(r.tanggal_jam), r.lokasi, r.aktifitas || "-",
+      r.kondisi || "-", r.temuan || "-", r.tindak_lanjut || "-",
+      r.pic, r.keterangan || "-", r.nama || "-", r.regu || "-",
+    ]);
+
+    const lainnyaRows = lainnyaData.map((r) => [
+      toDate(r.tanggal_jam), r.lokasi, r.aktifitas || "-",
+      r.pic, r.keterangan || "-", r.nama || "-", r.regu || "-",
     ]);
 
     const userSuffix = usernameFilter ? usernameFilter.replace(/\s+/g, "_") : "all";
     const kegiatanSuffix = kegiatanFilter ? kegiatanFilter.replace(/\s+/g, "_") : "all";
 
-    downloadPdf({
-      title: "Laporan Pengaturan Beban & Inspeksi",
+    downloadPdfMulti({
+      title: "Laporan Pengaturan Beban, Inspeksi & Lainnya",
       period: periodLabel,
-      columns: pdfColumns,
-      rows: pdfRows,
+      sections: [
+        {
+          title: "Pengaturan Beban",
+          columns: ["Tanggal Jam", "Lokasi", "Level Tegangan", "Posisi Power", "Unit/Area", "Unit Pindah", "PIC", "Keterangan", "Nama", "Regu"],
+          rows: pengaturanRows,
+        },
+        {
+          title: "Inspeksi",
+          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "Kondisi", "Temuan", "Tindak Lanjut", "PIC", "Keterangan", "Nama", "Regu"],
+          rows: inspeksiRows,
+        },
+        {
+          title: "Lainnya",
+          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "PIC", "Keterangan", "Nama", "Regu"],
+          rows: lainnyaRows,
+        },
+      ],
       filename: `Laporan_P2B_${startDate || "all"}_${endDate || "all"}_${kegiatanSuffix}_${userSuffix}`,
     });
   };
