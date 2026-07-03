@@ -41,18 +41,20 @@ export default function DashboardPage() {
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   });
 
-  // ── Rekap P2B per personil ──
+  // ── Rekap P2B per PIC (sama dengan chart) ──
   const rekapMap = new Map<string, { pengaturanBeban: number; inspeksi: number; lainnya: number }>();
 
   filteredLaporan.forEach((r) => {
-    const nama = r.nama || "Tanpa Nama";
-    if (!rekapMap.has(nama)) {
-      rekapMap.set(nama, { pengaturanBeban: 0, inspeksi: 0, lainnya: 0 });
-    }
-    const entry = rekapMap.get(nama)!;
-    if (r.kegiatan === "Pengaturan Beban") entry.pengaturanBeban++;
-    else if (r.kegiatan === "Inspeksi") entry.inspeksi++;
-    else if (r.kegiatan === "Lainnya") entry.lainnya++;
+    const pics = r.pic ? r.pic.split(", ").filter(Boolean) : ["Tanpa PIC"];
+    pics.forEach((pic) => {
+      if (!rekapMap.has(pic)) {
+        rekapMap.set(pic, { pengaturanBeban: 0, inspeksi: 0, lainnya: 0 });
+      }
+      const entry = rekapMap.get(pic)!;
+      if (r.kegiatan === "Pengaturan Beban") entry.pengaturanBeban++;
+      else if (r.kegiatan === "Inspeksi") entry.inspeksi++;
+      else if (r.kegiatan === "Lainnya") entry.lainnya++;
+    });
   });
 
   const rekapRows = Array.from(rekapMap.entries())
