@@ -26,29 +26,34 @@ export default function DatabaseStatusPage() {
 
   if (user?.role === "Operator" || user?.role === "Supervisor" || user?.role === "Manager") return null;
 
-  const [tables, setTables] = useState<TableStatus[]>([
-    { name: "users", status: "checking", count: null },
-    { name: "switch_gears", status: "checking", count: null },
-    { name: "activity_logs", status: "checking", count: null },
-  ]);
-  const [envCheck, setEnvCheck] = useState<{ url: boolean; key: boolean }>({ url: false, key: false });
-  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const ALL_TABLES = [
+    "users",
+    "switch_gears",
+    "activity_logs",
+    "laporan_p2b",
+    "change_approvals",
+    "push_subscriptions",
+    "unit_pengaturan",
+    "app_config",
+  ] as const;
+
+  const [tables, setTables] = useState<TableStatus[]>(
+    ALL_TABLES.map((name) => ({ name, status: "checking" as const, count: null })),
+  );
 
   useEffect(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-    setSupabaseUrl(url);
-    setEnvCheck({ url: url.length > 0 && url.startsWith("http"), key: key.length > 20 });
 
     if (!url || !key) return;
 
     const checkTables = async () => {
       const supabase = getSupabaseClient();
 
-      for (let i = 0; i < tables.length; i++) {
+      for (let i = 0; i < ALL_TABLES.length; i++) {
         try {
           const { data, error } = await supabase
-            .from(tables[i].name as "users" | "switch_gears" | "activity_logs")
+            .from(ALL_TABLES[i] as any)
             .select("*", { count: "exact", head: true });
 
           if (error) {
@@ -96,63 +101,8 @@ export default function DatabaseStatusPage() {
         <p className="text-sm text-gray-500 mt-1">Memeriksa koneksi database Supabase.</p>
       </div>
 
-      {/* Environment Check */}
+      {/* Table Status */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h3 className="text-base font-semibold">Environment Variables</h3>
-        </div>
-        <div className="px-6 py-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700 font-medium">NEXT_PUBLIC_SUPABASE_URL</span>
-            <div className="flex items-center gap-2">
-              {envCheck.url ? (
-                <span className="text-xs text-gray-500 truncate max-w-[300px]">{supabaseUrl}</span>
-              ) : (
-                <span className="text-xs text-red-500">Belum diisi</span>
-              )}
-              {envCheck.url ? <CheckCircle size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-red-500" />}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700 font-medium">NEXT_PUBLIC_SUPABASE_ANON_KEY</span>
-            <div className="flex items-center gap-2">
-              {envCheck.key ? (
-                <span className="text-xs text-gray-500">{envCheck.key ? "✓ Terisi" : ""}</span>
-              ) : (
-                <span className="text-xs text-red-500">Belum diisi</span>
-              )}
-              {envCheck.key ? <CheckCircle size={16} className="text-emerald-500" /> : <XCircle size={16} className="text-red-500" />}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Overall Status */}
-      {!envCheck.url || !envCheck.key ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
-          <Database size={40} className="mx-auto text-amber-400 mb-3" />
-          <h3 className="text-base font-semibold text-amber-800 mb-1">Kredensial Supabase Belum Diisi</h3>
-          <p className="text-sm text-amber-700 mb-4">
-            Untuk menghubungkan database, Anda perlu mengisi kredensial Supabase di file <code className="bg-amber-100 px-1.5 py-0.5 rounded text-xs">.env.local</code>
-          </p>
-          <div className="text-left max-w-lg mx-auto bg-white rounded-lg p-4 text-sm text-gray-600">
-            <p className="font-semibold text-gray-800 mb-2">📋 Langkah-langkah:</p>
-            <ol className="list-decimal list-inside space-y-1.5">
-              <li>Buka <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">supabase.com</a> dan login</li>
-              <li>Klik &quot;New project&quot; dan buat project baru</li>
-              <li>Buka <strong>Project Settings → API</strong></li>
-              <li>Copy <strong>Project URL</strong> dan <strong>anon public key</strong></li>
-              <li>Buat file <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env.local</code> dan isi seperti di <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env.example</code></li>
-              <li>Jalankan SQL dari <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">src/lib/supabase/migration.sql</code> di SQL Editor Supabase</li>
-              <li>Jalankan SQL dari <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">src/lib/supabase/seed.sql</code> di SQL Editor Supabase</li>
-              <li>Refresh halaman ini</li>
-            </ol>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Table Status */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-base font-semibold">Status Koneksi Tabel</h3>
               <button
@@ -213,8 +163,6 @@ export default function DatabaseStatusPage() {
               <h3 className="text-base font-semibold text-blue-800">Memeriksa Koneksi...</h3>
             </div>
           )}
-        </>
-      )}
     </div>
   );
 }
