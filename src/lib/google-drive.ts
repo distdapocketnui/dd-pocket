@@ -1,124 +1,39 @@
-"use client";
+/**
+ * Upload gambar ke Google Drive via server-side API route.
+ * Tidak perlu login Google — auth dikelola server dengan Service Account.
+ */
 
-let tokenClient: google.accounts.oauth2.TokenClient | null = null;
-let accessToken: string | null = null;
-let initialized = false;
-
-type InitCallback = () => void;
-const initCallbacks: InitCallback[] = [];
-
-/** Inisialisasi Google Identity Services — panggil sekali di awal */
-export function initGoogleDrive(clientId: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (initialized) { resolve(); return; }
-
-    // Tunggu GIS library siap
-    const check = () => {
-      if (typeof google !== "undefined" && google.accounts) {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: "https://www.googleapis.com/auth/drive.file",
-          callback: (response) => {
-            if (response.access_token) {
-              accessToken = response.access_token;
-            }
-          },
-        });
-        initialized = true;
-        initCallbacks.forEach((cb) => cb());
-        initCallbacks.length = 0;
-        resolve();
-      } else {
-        setTimeout(check, 200);
-      }
-    };
-
-    // Load GIS library jika belum ada
-    if (!document.querySelector('script[src*="gsi/client"]')) {
-      const script = document.createElement("script");
-      script.src = "https://accounts.google.com/gsi/client";
-      script.async = true;
-      script.defer = true;
-      script.onload = check;
-      document.head.appendChild(script);
-    } else {
-      check();
-    }
-  });
+/** Tidak perlu inisialisasi apa pun — server yang urus auth */
+export async function initGoogleDrive(_clientId?: string): Promise<void> {
+  // No-op: auth dikelola server-side via Service Account
+  return;
 }
 
-/** Minta akses token Google Drive (muncul popup auth) */
-export function requestAccessToken(): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (accessToken) {
-      resolve(accessToken);
-      return;
-    }
-
-    if (!tokenClient) {
-      reject(new Error("Google Identity Services belum diinisialisasi"));
-      return;
-    }
-
-    tokenClient.callback = (response) => {
-      if (response.access_token) {
-        accessToken = response.access_token;
-        resolve(accessToken);
-      } else {
-        reject(new Error(response.error || "Gagal mendapatkan token"));
-      }
-    };
-    tokenClient.requestAccessToken();
-  });
-}
-
-/** Upload file base64 ke Google Drive, return URL view */
+/**
+ * Upload file base64 ke server, yang akan meneruskannya ke Google Drive
+ */
 export async function uploadToGoogleDrive(
   base64DataUrl: string,
   fileName: string,
 ): Promise<string> {
-  const token = await requestAccessToken();
-
-  // Konversi base64 data URL ke Blob
+  // Konversi base64 data URL ke Blob/File
   const res = await fetch(base64DataUrl);
   const blob = await res.blob();
+  const file = new File([blob], fileName, { type: "image/jpeg" });
 
   const formData = new FormData();
-  formData.append("metadata", new Blob(
-    [JSON.stringify({ name: fileName })],
-    { type: "application/json" },
-  ));
-  formData.append("file", blob);
+  formData.append("file", file);
 
-  // Upload file
-  const uploadRes = await fetch(
-    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    },
-  );
+  const uploadRes = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
 
   if (!uploadRes.ok) {
-    const err = await uploadRes.text();
-    throw new Error(`Gagal upload ke Google Drive: ${err}`);
+    const err = await uploadRes.json().catch(() => ({ error: "Gagal upload" }));
+    throw new Error(err.error || "Gagal upload gambar");
   }
 
-  const { id: fileId, webViewLink } = await uploadRes.json();
-
-  // Set permission: Anyone with link can view
-  await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ role: "reader", type: "anyone" }),
-    },
-  );
-
-  return webViewLink || `https://drive.google.com/file/d/${fileId}/view`;
+  const { url } = await uploadRes.json();
+  return url;
 }

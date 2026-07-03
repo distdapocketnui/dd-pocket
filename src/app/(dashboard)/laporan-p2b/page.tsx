@@ -8,7 +8,7 @@ import { downloadPdfMulti } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, getCurrentDatetimeLocal } from "@/lib/date";
 import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3, X } from "lucide-react";
 import { compressImage } from "@/lib/image";
-import { initGoogleDrive, uploadToGoogleDrive } from "@/lib/google-drive";
+import { uploadToGoogleDrive } from "@/lib/google-drive";
 import LineChart from "@/components/ui/LineChart";
 import type { LaporanP2B, UnitPengaturan } from "@/types";
 
@@ -155,12 +155,6 @@ export default function LaporanP2BPage() {
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Init Google Drive
-  useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (clientId) initGoogleDrive(clientId);
-  }, []);
-
   // Filter state — default ke bulan berjalan
   const fmtLocal = (d: Date) => {
     const y = d.getFullYear();
@@ -292,11 +286,6 @@ export default function LaporanP2BPage() {
       // Upload gambar baru (base64) ke Google Drive
       let imageUrl = form.image;
       if (imageUrl && imageUrl.startsWith("data:")) {
-        if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-          alert("GOOGLE_CLIENT_ID belum diatur di .env.local");
-          setSaving(false);
-          return;
-        }
         setUploadingDrive(true);
         try {
           const ts = Date.now();

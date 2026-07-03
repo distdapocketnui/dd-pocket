@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import StatCard from "@/components/ui/StatCard";
@@ -13,7 +13,7 @@ import { Layers, CheckCircle, Wrench, CheckCheck, Lock, Image as ImageIcon, List
 import { compressImage } from "@/lib/image";
 import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentDatetimeLocal } from "@/lib/date";
-import { initGoogleDrive, uploadToGoogleDrive } from "@/lib/google-drive";
+import { uploadToGoogleDrive } from "@/lib/google-drive";
 import SupervisorCutiDialog from "@/components/ui/SupervisorCutiDialog";
 
 export default function LototoPage() {
@@ -43,11 +43,6 @@ export default function LototoPage() {
   } | null>(null);
   const [showCutiDialog, setShowCutiDialog] = useState(false);
 
-  // Init Google Drive
-  useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    if (clientId) initGoogleDrive(clientId);
-  }, []);
   const [form, setForm] = useState<{
     name: string; location: string; unit: string; status: SGStatus;
     pic: string; requester: string; notifNo: string; lototoNo: string;
@@ -166,10 +161,6 @@ export default function LototoPage() {
 
     // Upload gambar baru (base64) ke Google Drive
     if (payload.image && payload.image.startsWith("data:")) {
-      if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-        alert("GOOGLE_CLIENT_ID belum diatur di .env.local");
-        return;
-      }
       setUploadingDrive(true);
       try {
         const ts = Date.now();
