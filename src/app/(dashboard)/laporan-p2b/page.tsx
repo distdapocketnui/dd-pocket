@@ -483,8 +483,9 @@ ${detail}
 Nama : _${r.nama}_
 Regu : _${r.regu}_
 
+_Source data From : https://distda-pocketnui.web.id_
 _Date Create : ${now}_
-_Dibuat oleh ${user?.name || "-"}_`;
+_Dikirim oleh ${user?.name || "-"}_`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
