@@ -54,6 +54,7 @@ function mapSG(row: any): SwitchGear {
     notifNo: row.notif_no || "",
     lototoNo: row.lototo_no || "",
     image: row.image || "",
+    images: row.images || "[]",
     description: row.description || "",
   };
 }

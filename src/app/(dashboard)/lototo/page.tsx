@@ -16,6 +16,17 @@ import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentD
 import { uploadToGoogleDrive } from "@/lib/google-drive";
 import SupervisorCutiDialog from "@/components/ui/SupervisorCutiDialog";
 
+
+/** Ambil URL gambar dari field images (JSON) atau image (single) */
+function getImages(item: SwitchGear): string[] {
+  try {
+    const parsed = JSON.parse(item.images || "[]");
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : item.image ? [item.image] : [];
+  } catch {
+    return item.image ? [item.image] : [];
+  }
+}
+
 export default function LototoPage() {
   const { switchGears, addSwitchGear, updateSwitchGear, deleteSwitchGear, createApproval } = useData();
   const { user, hasRole } = useAuth();
@@ -46,11 +57,11 @@ export default function LototoPage() {
   const [form, setForm] = useState<{
     name: string; location: string; unit: string; status: SGStatus;
     pic: string; requester: string; notifNo: string; lototoNo: string;
-    description: string; image: string;
+    description: string; image: string; images: string[];
     activeTime: string; finishTime: string;
   }>({
     name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
-    pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "",
+    pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
     activeTime: "", finishTime: "",
   });
 
@@ -79,7 +90,7 @@ export default function LototoPage() {
     setImagePreview("");
     setForm({
       name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
-      pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "",
+      pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
       activeTime: getCurrentDatetimeLocal(), finishTime: "",
     });
     setModalOpen(true);
@@ -87,11 +98,11 @@ export default function LototoPage() {
 
   const openEdit = (sg: SwitchGear) => {
     setEditId(sg.id);
-    setImagePreview(sg.image || "");
     setForm({
       name: sg.name, location: sg.location, unit: sg.unit, status: sg.status,
       pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
       description: sg.description, image: sg.image || "",
+      images: getImages(sg),
       activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
       finishTime: sg.status === "Selesai" ? (toDatetimeLocal(sg.finishTime) || getCurrentDatetimeLocal()) : "",
     });
@@ -153,26 +164,15 @@ export default function LototoPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = {
+    const payload: any = {
       ...form,
+      images: form.images,
       activeTime: toIndonesianDate(form.activeTime) || form.activeTime,
       finishTime: form.status === "Selesai" ? (toIndonesianDate(form.finishTime) || form.finishTime) : "",
     };
 
-    // Upload gambar baru (base64) ke Google Drive
-    if (payload.image && payload.image.startsWith("data:")) {
-      setUploadingDrive(true);
-      try {
-        const ts = Date.now();
-        const name = `SG_${payload.name || "unknown"}_${ts}`;
-        payload.image = await uploadToGoogleDrive(payload.image, name);
-      } catch (err: any) {
-        alert("Gagal upload gambar ke Google Drive: " + (err.message || err));
-        setUploadingDrive(false);
-        return;
-      }
-      setUploadingDrive(false);
-    }
+    // Images sudah diupload oleh ImageUpload, simpan sebagai JSON
+    payload.images = JSON.stringify(payload.images || []);
 
     if (editId) {
       if (isOperator) {

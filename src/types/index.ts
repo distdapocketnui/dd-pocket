@@ -24,6 +24,7 @@ export interface SwitchGear {
   notifNo: string;
   lototoNo: string;
   image: string;
+  images: string;
   description: string;
 }
 
@@ -91,6 +92,7 @@ export interface LaporanP2B {
   tindak_lanjut: string;
   keterangan: string;
   image: string;
+  images: string;
   nama: string;
   regu: string;
   created_by: string;

@@ -59,6 +59,7 @@ export interface Database {
           notif_no: string;
           lototo_no: string;
           image: string;
+          images: string;
           description: string;
           created_at: string;
           updated_at: string;
@@ -75,6 +76,7 @@ export interface Database {
           notif_no?: string;
           lototo_no?: string;
           image?: string;
+          images?: string;
           description?: string;
         };
         Update: {
@@ -89,6 +91,7 @@ export interface Database {
           notif_no?: string;
           lototo_no?: string;
           image?: string;
+          images?: string;
           description?: string;
         };
         Relationships: [];
@@ -180,6 +183,8 @@ export interface Database {
           created_by: string;
           created_at: string;
           updated_at: string;
+          image: string;
+          images: string;
         };
         Insert: {
           tanggal_jam?: string;
@@ -198,6 +203,8 @@ export interface Database {
           nama?: string;
           regu?: string;
           created_by?: string;
+          image?: string;
+          images?: string;
         };
         Update: {
           tanggal_jam?: string;
@@ -215,6 +222,8 @@ export interface Database {
           keterangan?: string;
           nama?: string;
           regu?: string;
+          image?: string;
+          images?: string;
         };
         Relationships: [];
       };

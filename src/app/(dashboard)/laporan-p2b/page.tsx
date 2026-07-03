@@ -6,10 +6,10 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import DataTable from "@/components/ui/DataTable";
 import { downloadPdfMulti } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, getCurrentDatetimeLocal } from "@/lib/date";
-import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3, X } from "lucide-react";
-import { compressImage } from "@/lib/image";
-import { uploadToGoogleDrive } from "@/lib/google-drive";
+import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3 } from "lucide-react";
 import LineChart from "@/components/ui/LineChart";
+import ImageUpload from "@/components/ui/ImageUpload";
+import ImageGallery from "@/components/ui/ImageGallery";
 import type { LaporanP2B, UnitPengaturan } from "@/types";
 
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Power House", "Power Plant", "Tambang", "Lainnya"];
@@ -113,7 +113,7 @@ function formatDate(iso: string) {
   return `${parseInt(d)} ${MONTHS[parseInt(month) - 1]} ${y} ${hh}:${mm}`;
 }
 
-function emptyForm(user?: { name: string; regu: string }): Omit<LaporanP2B, "id" | "created_at" | "updated_at" | "created_by"> {
+function emptyForm(user?: { name: string; regu: string }) {
   return {
     tanggal_jam: getCurrentDatetimeLocal(),
     lokasi: "",
@@ -124,11 +124,12 @@ function emptyForm(user?: { name: string; regu: string }): Omit<LaporanP2B, "id"
     aktifitas: "",
     area: "",
     pic: user?.name || "",
-    kegiatan: "Pengaturan Beban",
+    kegiatan: "Pengaturan Beban" as "Pengaturan Beban" | "Inspeksi" | "Lainnya",
     temuan: "",
     tindak_lanjut: "",
     keterangan: "",
     image: "",
+    images: [] as string[],
     nama: user?.name || "",
     regu: user?.regu || "",
   };
@@ -149,11 +150,6 @@ export default function LaporanP2BPage() {
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
-  const [imageLoading, setImageLoading] = useState(false);
-  const [uploadingDrive, setUploadingDrive] = useState(false);
-  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter state — default ke bulan berjalan
   const fmtLocal = (d: Date) => {
@@ -283,22 +279,6 @@ export default function LaporanP2BPage() {
     try {
       const supabase = getSupabaseClient();
 
-      // Upload gambar baru (base64) ke Google Drive
-      let imageUrl = form.image;
-      if (imageUrl && imageUrl.startsWith("data:")) {
-        setUploadingDrive(true);
-        try {
-          const ts = Date.now();
-          const name = `P2B_${user?.name || "unknown"}_${ts}`;
-          imageUrl = await uploadToGoogleDrive(imageUrl, name);
-        } catch (err: any) {
-          alert("Gagal upload gambar ke Google Drive: " + (err.message || err));
-          setUploadingDrive(false);
-          return;
-        }
-        setUploadingDrive(false);
-      }
-
       const updateData: any = {
         tanggal_jam: form.tanggal_jam,
         lokasi: form.lokasi,
@@ -313,7 +293,8 @@ export default function LaporanP2BPage() {
         temuan: form.temuan || "",
         tindak_lanjut: form.tindak_lanjut || "",
         keterangan: form.keterangan || "",
-        image: imageUrl,
+        image: form.images[0] || "",
+        images: JSON.stringify(form.images),
         nama: user?.name || "",
         regu: user?.regu || "",
         created_by: user?.name || "",
@@ -347,43 +328,13 @@ export default function LaporanP2BPage() {
     }
   };
 
-  // ── Image Upload ──
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageLoading(true);
+  // ── Ambil URL gambar dari field images (JSON) atau image (single) ──
+  const getImages = (item: LaporanP2B): string[] => {
     try {
-      const compressed = await compressImage(file);
-      setForm(prev => ({ ...prev, image: compressed }));
-      setImagePreview(compressed);
+      const parsed = item.images ? JSON.parse(item.images) : [];
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : item.image ? [item.image] : [];
     } catch {
-      alert("Gagal memproses gambar");
-    }
-    setImageLoading(false);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const removeImage = () => {
-    setForm(prev => ({ ...prev, image: "" }));
-    setImagePreview("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const getDrivePreviewUrl = (url: string) => {
-    const match = url.match(/[?&]id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
-    const fileId = match?.[1];
-    return fileId
-      ? `https://drive.google.com/file/d/${fileId}/preview`
-      : null;
-  };
-
-  const handleImageClick = (r: LaporanP2B) => {
-    if (!r.image) return;
-    if (r.image.includes("drive.google.com")) {
-      const previewUrl = getDrivePreviewUrl(r.image);
-      if (previewUrl) setLightboxImg(previewUrl);
-    } else {
-      setLightboxImg(r.image);
+      return item.image ? [item.image] : [];
     }
   };
 
@@ -419,17 +370,18 @@ export default function LaporanP2BPage() {
       tindak_lanjut: item.tindak_lanjut || "",
       keterangan: item.keterangan || "",
 		image: item.image || "",
+		images: getImages(item),
       nama: item.nama || user?.name || "",
       regu: item.regu || user?.regu || "",
     });
-	setImagePreview(item.image || "");
+
     setShowForm(true);
   };
 
   // ── Open add form ──
   const openAdd = () => {
     setEditing(null);
-		setImagePreview("");
+
     setForm(emptyForm(user || undefined));
     setShowForm(true);
   };
@@ -599,13 +551,10 @@ _Dikirim oleh ${user?.name || "-"}_`;
   const tindakLanjutCol = { key: "tindak_lanjut", header: "Tindak Lanjut", render: (r: LaporanP2B) => r.tindak_lanjut || "-" };
   const keteranganCol = { key: "keterangan", header: "Keterangan", render: (r: LaporanP2B) => r.keterangan || "-" };
   const gambarCol = {
-    key: "image", header: "Gambar", render: (r: LaporanP2B) => r.image ? (
-      <button onClick={() => handleImageClick(r)} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 cursor-pointer hover:bg-blue-100 transition-colors">
-        Lihat
-      </button>
-    ) : (
-      <span className="text-xs text-gray-300">—</span>
-    ),
+    key: "image", header: "Gambar", render: (r: LaporanP2B) => {
+      const imgs = getImages(r);
+      return imgs.length > 0 ? <ImageGallery images={imgs} /> : <span className="text-xs text-gray-300">—</span>;
+    },
   };
   const namaCol = { key: "nama", header: "Nama", render: (r: LaporanP2B) => r.nama || "-" };
   const reguCol = { key: "regu", header: "Regu", render: (r: LaporanP2B) => r.regu || "-" };
@@ -983,24 +932,11 @@ _Dikirim oleh ${user?.name || "-"}_`;
 
               {/* Upload Gambar */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Gambar</label>
-                <div className="flex items-center gap-3">
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors cursor-pointer" />
-                  {imageLoading && (
-                    <svg className="animate-spin h-5 w-5 text-blue-600 flex-shrink-0" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                  )}
-                </div>
-                {imagePreview && (
-                  <div className="relative mt-3 inline-block">
-                    <img src={imagePreview} alt="Preview" className="h-32 w-auto rounded-xl border border-gray-200 object-cover" />
-                    <button type="button" onClick={removeImage} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors" title="Hapus gambar">
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload Gambar (max 3)</label>
+                <ImageUpload
+                  existingUrls={form.images}
+                  onImagesChange={(urls) => setForm(prev => ({ ...prev, images: urls }))}
+                />
               </div>
 
               {/* Nama & Regu — read-only, dari user login */}
@@ -1019,31 +955,11 @@ _Dikirim oleh ${user?.name || "-"}_`;
             {/* Footer */}
             <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
               <button onClick={() => { setShowForm(false); setEditing(null); }} className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Batal</button>
-              <button onClick={handleSave} disabled={saving || uploadingDrive} className="px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50">
-                {saving || uploadingDrive ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {uploadingDrive ? "Mengupload..." : editing ? "Simpan" : "Tambah"}
+              <button onClick={handleSave} disabled={saving} className="px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {editing ? "Simpan" : "Tambah"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Lightbox */}
-      {lightboxImg && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setLightboxImg(null)}>
-          <div className="relative max-w-4xl max-h-[90vh] w-full">
-            {lightboxImg.includes("/preview") ? (
-              <iframe
-                src={lightboxImg}
-                className="w-full h-[80vh] rounded-xl shadow-2xl"
-                allow="autoplay"
-              />
-            ) : (
-              <img src={lightboxImg} alt="Gambar" className="max-w-full max-h-[90vh] rounded-xl shadow-2xl mx-auto" />
-            )}
-            <button onClick={() => setLightboxImg(null)} className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-gray-600 hover:text-gray-900 transition-colors">
-              <X size={16} />
-            </button>
           </div>
         </div>
       )}
