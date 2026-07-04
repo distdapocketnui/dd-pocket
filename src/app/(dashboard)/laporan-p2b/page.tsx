@@ -451,7 +451,7 @@ ${detail}
 Nama : _${r.nama}_
 Regu : _${r.regu}_
 
-_Source data From : https://distda-pocketnui.web.id_
+_Source data From : https://distda-pocketnui.biz.id_
 _Date Create : ${now}_
 _Dikirim oleh ${user?.name || "-"}_`;
     const encoded = encodeURIComponent(message);
