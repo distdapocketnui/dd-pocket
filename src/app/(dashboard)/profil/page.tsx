@@ -7,6 +7,7 @@ import { getInitials, roleBadgeClass } from "@/lib/utils";
 import {
   Eye, EyeOff, Mail, Phone, Building2, Users, User,
   KeyRound, Shield, Save, X, CheckCircle, Lock, Users as UsersIcon,
+  GitBranch,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 export default function ProfilPage() {
@@ -366,12 +367,8 @@ function ReguTeam({ regu }: { regu: string }) {
   const { users } = useData();
   const members = users.filter((u) => u.regu === regu && u.status === "Aktif");
 
-  // Sort: Supervisor first, then Operator, then others
-  const sorted = [...members].sort((a, b) => {
-    if (a.role === "Supervisor") return -1;
-    if (b.role === "Supervisor") return 1;
-    return 0;
-  });
+  const supervisors = members.filter((m) => m.role === "Supervisor");
+  const operators = members.filter((m) => m.role === "Operator");
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -384,42 +381,109 @@ function ReguTeam({ regu }: { regu: string }) {
           {members.length} Personil
         </span>
       </div>
-      {sorted.length === 0 ? (
+
+      {members.length === 0 ? (
         <div className="px-6 py-8 text-center text-gray-400 text-sm">
           <UsersIcon size={24} className="mx-auto mb-2 opacity-50" />
           Belum ada personil
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-50 bg-gray-50/50">
-                <th className="text-left px-6 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Nama</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">No. Handphone</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Unit Kerja</th>
-                <th className="text-left px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Departemen</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {sorted.map((m) => (
-                <tr key={m.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                        {getInitials(m.name)}
-                      </div>
-                      <span className="font-semibold text-gray-800">{m.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-gray-600">{m.phone || <span className="text-gray-300">—</span>}</td>
-                  <td className="px-4 py-3.5 text-gray-600">{m.unit || <span className="text-gray-300">—</span>}</td>
-                  <td className="px-4 py-3.5 text-gray-600">{m.department || <span className="text-gray-300">—</span>}</td>
-                </tr>
+        <div className="px-6 py-5 overflow-x-auto">
+          {supervisors.map((spv, idx) => {
+            const teamOps = operators.filter((op) => op.regu === spv.regu);
+            return (
+              <div key={spv.id} className="flex flex-col items-center mb-6 last:mb-0">
+                {/* Supervisor Card */}
+                <div className="flex flex-col items-center gap-1.5 px-4 py-3 bg-white rounded-xl border border-gray-200 shadow-sm min-w-[120px]">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 via-cyan-600 to-blue-700 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                    {getInitials(spv.name)}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-gray-800">{spv.name}</p>
+                    <span className="inline-block mt-0.5 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-700 border border-cyan-200">
+                      {spv.role}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Connector line */}
+                {teamOps.length > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="w-px h-4 bg-gray-300" />
+                    <svg width={Math.min(teamOps.length, 4) * 100} height="10" className="text-gray-300">
+                      {teamOps.length > 1 && (
+                        <line x1="0" y1="0" x2={(teamOps.length - 1) * 100 + 2} y2="0" stroke="currentColor" strokeWidth="1.5" />
+                      )}
+                      {teamOps.map((_, i) => (
+                        <line key={i} x1={i * 100} y1="0" x2={i * 100} y2="5" stroke="currentColor" strokeWidth="1.5" />
+                      ))}
+                    </svg>
+                  </div>
+                )}
+
+                {/* Operator Cards */}
+                {teamOps.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {teamOps.slice(0, 4).map((op) => (
+                      <OperatorTreeCard key={op.id} user={op} />
+                    ))}
+                  </div>
+                )}
+                {teamOps.length === 0 && (
+                  <p className="text-[10px] text-gray-400 mt-1 italic">Tidak ada operator</p>
+                )}
+
+                {/* Separator antar supervisor */}
+                {idx < supervisors.length - 1 && (
+                  <div className="w-full border-t border-dashed border-gray-200 my-4" />
+                )}
+              </div>
+            );
+          })}
+          {supervisors.length === 0 && operators.length > 0 && (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {operators.map((op) => (
+                <OperatorTreeCard key={op.id} user={op} />
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Card Operator untuk Tree View ──
+function OperatorTreeCard({ user }: { user: { id: number; name: string; role: string; phone: string; unit: string; department: string } }) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-3 py-2.5 bg-white rounded-xl border border-gray-100 shadow-sm min-w-[100px]">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-green-700 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
+        {getInitials(user.name)}
+      </div>
+      <p className="text-[10px] font-semibold text-gray-800 text-center leading-tight">{user.name}</p>
+      <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+        {user.role}
+      </span>
+      <div className="w-full mt-0.5 space-y-0.5">
+        {user.phone && (
+          <div className="flex items-center gap-1 text-[8px] text-gray-500">
+            <Phone size={7} className="shrink-0" />
+            <span className="truncate">{user.phone}</span>
+          </div>
+        )}
+        {user.unit && (
+          <div className="flex items-center gap-1 text-[8px] text-gray-500">
+            <Building2 size={7} className="shrink-0" />
+            <span className="truncate">{user.unit}</span>
+          </div>
+        )}
+        {user.department && (
+          <div className="flex items-center gap-1 text-[8px] text-gray-500">
+            <Building2 size={7} className="shrink-0" />
+            <span className="truncate">{user.department}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
