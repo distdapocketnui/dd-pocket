@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  LayoutDashboard, Lock, Wrench, Server, FileText, History, Users, ChevronLeft, X, Database, ClipboardList,
+  LayoutDashboard, Lock, Wrench, Server, FileText, Users, ChevronLeft, X, Database, ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -16,7 +16,6 @@ const NAV_ITEMS = [
   { href: "/switch-gear", label: "Switch Gear", icon: Server },
   { href: "/laporan-harian", label: "Laporan Lototo", icon: FileText },
   { href: "/laporan-p2b", label: "Laporan P2B", icon: ClipboardList, glow: "green" },
-  { href: "/aktivitas-log", label: "Aktifitas Log", icon: History },
   { href: "/pengguna", label: "Pengguna", icon: Users },
   { href: "/database-status", label: "DB Status", icon: Database },
 ];
@@ -46,7 +45,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
 
   const filteredNav = NAV_ITEMS.filter((item) => {
     if (isVisitor && !["/dashboard", "/lototo", "/sg-maintenance", "/switch-gear"].includes(item.href)) return false;
-    if ((isOperator || isSupervisor) && ["/aktivitas-log", "/pengguna", "/database-status"].includes(item.href)) return false;
+    if ((isOperator || isSupervisor) && ["/pengguna", "/database-status"].includes(item.href)) return false;
     if (isManager && ["/pengguna", "/database-status"].includes(item.href)) return false;
     return true;
   });

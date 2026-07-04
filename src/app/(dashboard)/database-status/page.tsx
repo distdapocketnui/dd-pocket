@@ -28,7 +28,6 @@ export default function DatabaseStatusPage() {
   const ALL_TABLES = [
     "users",
     "switch_gears",
-    "activity_logs",
     "laporan_p2b",
     "change_approvals",
     "push_subscriptions",

@@ -1,14 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { SwitchGear, User, ActivityLog, ChangeApproval, UserRole } from "@/types";
+import { SwitchGear, User, ChangeApproval, UserRole } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { notifyAdminAfterApprovalRequest, notifyUserAfterReview, notifyDataChange } from "@/lib/notify-admin";
 
 interface DataContextType {
   switchGears: SwitchGear[];
   users: User[];
-  activityLogs: ActivityLog[];
   approvals: ChangeApproval[];
   pendingApprovalCount: number;
   dataReady: boolean;
@@ -75,17 +74,6 @@ function mapUser(row: any): User {
   };
 }
 
-function mapLog(row: any): ActivityLog {
-  return {
-    id: row.id,
-    action: row.action,
-    user: row.user,
-    page: row.page || "",
-    timestamp: row.timestamp || "",
-    details: row.details || "",
-  };
-}
-
 function mapApproval(row: any): ChangeApproval {
   return {
     id: row.id,
@@ -109,7 +97,6 @@ function mapApproval(row: any): ChangeApproval {
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [switchGears, setSwitchGears] = useState<SwitchGear[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [approvals, setApprovals] = useState<ChangeApproval[]>([]);
   const [dataReady, setDataReady] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -120,16 +107,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const fetchAll = useCallback(async () => {
     const supabase = getSupabaseClient();
     try {
-      const [sgRes, usersRes, logsRes, approvalsRes] = await Promise.all([
+      const [sgRes, usersRes, approvalsRes] = await Promise.all([
         supabase.from("switch_gears").select("*").order("active_time", { ascending: false, nullsFirst: false }),
         supabase.from("users").select("*").order("created_at", { ascending: false }),
-        supabase.from("activity_logs").select("*").order("created_at", { ascending: false }),
         supabase.from("change_approvals").select("*").order("created_at", { ascending: false }),
       ]);
 
       if (sgRes.data) setSwitchGears(sgRes.data.map(mapSG));
       if (usersRes.data) setUsers(usersRes.data.map(mapUser));
-      if (logsRes.data) setActivityLogs(logsRes.data.map(mapLog));
       if (approvalsRes.data) setApprovals(approvalsRes.data.map(mapApproval));
 
       setDataReady(true);
@@ -182,27 +167,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAll]);
 
   // ===== Activity Log Helper =====
-  const addLog = useCallback(async (action: string, details: string, page: string) => {
-    try {
-      const stored = localStorage.getItem("ddp_current_user");
-      const currentUser = stored ? JSON.parse(stored) : null;
-      const userName = currentUser?.name || "System";
-      const supabase = getSupabaseClient();
-      const { data } = await supabase.from("activity_logs").insert({
-        action,
-        user: userName,
-        page,
-        timestamp: new Date().toLocaleString("id-ID", {
-          year: "numeric", month: "2-digit", day: "2-digit",
-          hour: "2-digit", minute: "2-digit",
-        }),
-        details: `${details} oleh ${userName}`,
-      }).select().single();
-
-      if (data) {
-        setActivityLogs(prev => [mapLog(data), ...prev]);
-      }
-    } catch { /* silently fail */ }
+  const addLog = useCallback(async (_action: string, _details: string, _page: string) => {
+    // No-op: activity_logs sudah dihapus
   }, []);
 
   // ===== Switch Gear CRUD =====
@@ -673,7 +639,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <DataContext.Provider value={{
-      switchGears, users, activityLogs, approvals, pendingApprovalCount, dataReady,
+      switchGears, users, approvals, pendingApprovalCount, dataReady,
       addSwitchGear, updateSwitchGear, deleteSwitchGear, getSwitchGear,
       addUser, updateUser, deleteUser, getUser,
       createApproval, approveApproval, rejectApproval,
