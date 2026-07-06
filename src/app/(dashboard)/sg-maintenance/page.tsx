@@ -62,6 +62,14 @@ export default function SGMaintenancePage() {
     activeTime: "", finishTime: "",
   });
 
+  const softBorderClass = form.status === "Aktif Lototo"
+    ? "border-red-200 bg-red-50/50 focus:border-red-500 focus:ring-red-500/10"
+    : form.status === "Maintenance"
+    ? "border-amber-200 bg-amber-50/50 focus:border-amber-500 focus:ring-amber-500/10"
+    : form.status === "Selesai"
+    ? "border-emerald-200 bg-emerald-50/50 focus:border-emerald-500 focus:ring-emerald-500/10"
+    : "border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500/10";
+
   const aktif = switchGears.filter((s) => s.status === "Aktif Lototo").length;
   const maintenance = switchGears.filter((s) => s.status === "Maintenance").length;
   const selesai = switchGears.filter((s) => s.status === "Selesai").length;
@@ -268,17 +276,17 @@ export default function SGMaintenancePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Switch Gear</label>
-              <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="SG-MV-01" />
+              <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="SG-MV-01" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Lokasi</label>
-              <input type="text" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Area Transformer" />
+              <input type="text" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="Area Transformer" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Unit</label>
-              <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
+              <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`}>
                 <option>Tonasa 2/3</option><option>Tonasa 4</option><option>Tonasa 5</option><option>SG Lainnya</option>
               </select>
             </div>
@@ -303,7 +311,7 @@ export default function SGMaintenancePage() {
               required
               value={form.activeTime}
               onChange={(e) => setForm({ ...form, activeTime: e.target.value })}
-              className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+              className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`}
             />
           </div>
 
@@ -316,7 +324,7 @@ export default function SGMaintenancePage() {
                 required
                 value={form.finishTime}
                 onChange={(e) => setForm({ ...form, finishTime: e.target.value })}
-                className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`}
               />
             </div>
           )}
@@ -324,26 +332,26 @@ export default function SGMaintenancePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">PIC</label>
-              <input type="text" required value={form.pic} onChange={(e) => setForm({ ...form, pic: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Nama PIC" />
+              <input type="text" required value={form.pic} onChange={(e) => setForm({ ...form, pic: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="Nama PIC" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Peminta</label>
-              <input type="text" required value={form.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Nama peminta" />
+              <input type="text" required value={form.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="Nama peminta" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">No. Notifikasi</label>
-              <input type="text" value={form.notifNo} onChange={(e) => setForm({ ...form, notifNo: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="NOTIF-2026-001" />
+              <input type="text" value={form.notifNo} onChange={(e) => setForm({ ...form, notifNo: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="NOTIF-2026-001" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">No. Lototo</label>
-              <input type="text" value={form.lototoNo} onChange={(e) => setForm({ ...form, lototoNo: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="LT-2026-001" />
+              <input type="text" value={form.lototoNo} onChange={(e) => setForm({ ...form, lototoNo: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="LT-2026-001" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>
-            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all min-h-[70px]" placeholder="Deskripsi pekerjaan..." />
+            <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} min-h-[70px]`} placeholder="Deskripsi pekerjaan..." />
           </div>
 
           {/* Image Upload — multi-upload max 3 gambar */}

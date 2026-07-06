@@ -260,7 +260,7 @@ export default function LaporanP2BPage() {
 
   // ── Save (add / edit) ──
   const handleSave = async () => {
-    if ((isPengaturanBeban || isLainnya) && !form.lokasi) {
+    if ((isPengaturanBeban || isLainnya || isInspeksi) && !form.lokasi) {
       alert("Lokasi wajib diisi");
       return;
     }
@@ -898,7 +898,15 @@ _Dikirim oleh ${user?.name || "-"}_`;
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="text-base font-semibold text-gray-900">{editing ? "Edit Laporan P2B" : "Tambah Laporan P2B"}</h3>
             </div>
-            <div className={`p-6 space-y-4 ${isInspeksi ? '[&_input]:!border-blue-300 [&_input]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.1),0_0_10px_rgba(147,197,253,0.25)] [&_select]:!border-blue-300 [&_select]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.1),0_0_10px_rgba(147,197,253,0.25)] [&_textarea]:!border-blue-300 [&_textarea]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.1),0_0_10px_rgba(147,197,253,0.25)]' : ''}`}>
+            <div className={`p-6 space-y-4 ${
+              isPengaturanBeban
+                ? '[&_input]:!border-green-200 [&_input]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)] [&_select]:!border-green-200 [&_select]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)] [&_textarea]:!border-green-200 [&_textarea]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)]'
+                : isInspeksi
+                ? '[&_input]:!border-red-200 [&_input]:![box-shadow:0_0_0_1px_rgba(252,165,165,0.15),0_0_6px_rgba(252,165,165,0.12)] [&_select]:!border-red-200 [&_select]:![box-shadow:0_0_0_1px_rgba(252,165,165,0.15),0_0_6px_rgba(252,165,165,0.12)] [&_textarea]:!border-red-200 [&_textarea]:![box-shadow:0_0_0_1px_rgba(252,165,165,0.15),0_0_6px_rgba(252,165,165,0.12)]'
+                : isLainnya
+                ? '[&_input]:!border-blue-200 [&_input]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.15),0_0_6px_rgba(147,197,253,0.12)] [&_select]:!border-blue-200 [&_select]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.15),0_0_6px_rgba(147,197,253,0.12)] [&_textarea]:!border-blue-200 [&_textarea]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.15),0_0_6px_rgba(147,197,253,0.12)]'
+                : ''
+            }`}>
               {/* Tanggal Jam */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Jam *</label>
@@ -913,8 +921,8 @@ _Dikirim oleh ${user?.name || "-"}_`;
                 </select>
               </div>
 
-              {/* Lokasi — untuk Pengaturan Beban & Lainnya */}
-              {(isPengaturanBeban || isLainnya) && (
+              {/* Lokasi */}
+              {isPengaturanBeban || isLainnya || isInspeksi ? (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Lokasi *</label>
                 <select value={form.lokasi} onChange={(e) => setForm({ ...form, lokasi: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
@@ -922,7 +930,7 @@ _Dikirim oleh ${user?.name || "-"}_`;
                   {LOKASI_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
-              )}
+              ) : null}
 
               {/* Level Tegangan — hanya untuk Pengaturan Beban */}
               {isPengaturanBeban && (

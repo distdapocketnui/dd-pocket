@@ -7,6 +7,7 @@ interface PdfData {
   columns: string[];
   rows: string[][];
   filename: string;
+  onCellParse?: (data: any) => void;
 }
 
 interface PdfSection {
@@ -23,7 +24,7 @@ interface PdfMultiData {
 }
 
 /** Export data table to A4 landscape PDF with header, footer, and signature */
-export function downloadPdf({ title, period, columns, rows, filename }: PdfData) {
+export function downloadPdf({ title, period, columns, rows, filename, onCellParse }: PdfData) {
   const doc = new jsPDF("l", "mm", "a4");
   const pageW = 297; // A4 landscape width in mm
   const marginLeft = 20;
@@ -86,6 +87,7 @@ export function downloadPdf({ title, period, columns, rows, filename }: PdfData)
     alternateRowStyles: {
       fillColor: [245, 247, 250],
     },
+    didParseCell: onCellParse,
     didDrawPage: () => {
       // Footer on each page
       pageCount = doc.getNumberOfPages();

@@ -21,6 +21,7 @@ interface Props<T> {
   onRowClick?: (item: T) => void;
   maxHeight?: string;
   getRowClass?: (item: T) => string;
+  onSearchChange?: (value: string) => void;
 }
 
 const ROWS_OPTIONS = [10, 20, 30, 50, 100];
@@ -35,8 +36,14 @@ export default function DataTable<T>({
   onRowClick,
   maxHeight,
   getRowClass,
+  onSearchChange,
 }: Props<T>) {
   const [search, setSearch] = useState("");
+
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    onSearchChange?.(val);
+  };
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -97,7 +104,7 @@ export default function DataTable<T>({
               <SearchInput
                 placeholder={searchPlaceholder}
                 value={search}
-                onChange={setSearch}
+                onChange={handleSearch}
               />
             )}
             {actions}
