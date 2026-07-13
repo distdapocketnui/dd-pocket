@@ -60,9 +60,10 @@ function UnitPindahDropdown({ unitPengaturan, value, onChange }: { unitPengatura
   );
 }
 
-function PicDropdown({ users, value, onChange }: { users: { id: number; name: string }[]; value: string; onChange: (v: string) => void }) {
+function PicDropdown({ users, value, onChange }: { users: { id: number; name: string; regu?: string }[]; value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const selected = value ? value.split(", ").filter(Boolean) : [];
+  const filteredUsers = users.filter(u => u.regu); // Hanya tampilkan user yang memiliki regu
 
   const toggle = (name: string) => {
     const idx = selected.indexOf(name);
@@ -85,7 +86,7 @@ function PicDropdown({ users, value, onChange }: { users: { id: number; name: st
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto border border-gray-200 rounded-xl bg-white shadow-lg p-1.5 space-y-0.5">
-            {users.map((u) => {
+            {filteredUsers.map((u) => {
               const checked = selected.includes(u.name);
               return (
                 <label key={u.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 cursor-pointer text-sm">
@@ -202,7 +203,7 @@ export default function LaporanP2BPage() {
       const supabase = getSupabaseClient();
       const { data } = await supabase
         .from("users")
-        .select("id, name")
+        .select("id, name, regu")
         .in("role", ["Admin", "Supervisor", "Operator"])
         .order("name");
       if (data) setPicUsers(data);
@@ -728,7 +729,7 @@ _Dikirim oleh ${user?.name || "-"}_`;
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Laporan P2B</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Laporan Harian P2B</h1>
         <p className="text-sm text-gray-500 mt-1">Pengaturan Beban &amp; Inspeksi Rutin</p>
       </div>
 
@@ -896,7 +897,7 @@ _Dikirim oleh ${user?.name || "-"}_`;
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">{editing ? "Edit Laporan P2B" : "Tambah Laporan P2B"}</h3>
+              <h3 className="text-base font-semibold text-gray-900">{editing ? "Edit Laporan Harian P2B" : "Tambah Laporan Harian P2B"}</h3>
             </div>
             <div className={`p-6 space-y-4 ${
               isPengaturanBeban

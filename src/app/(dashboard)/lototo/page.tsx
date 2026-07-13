@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import StatCard from "@/components/ui/StatCard";
@@ -16,6 +16,7 @@ import { Layers, CheckCircle, Wrench, CheckCheck, Lock, ListOrdered, Loader2 } f
 import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentDatetimeLocal } from "@/lib/date";
 import SupervisorCutiDialog from "@/components/ui/SupervisorCutiDialog";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 
 /** Ambil URL gambar dari field images (JSON) atau image (single) */
@@ -26,6 +27,48 @@ function getImages(item: SwitchGear): string[] {
   } catch {
     return item.image ? [item.image] : [];
   }
+}
+
+function PicDropdown({ users, value, onChange }: { users: { id: number; name: string; regu?: string }[]; value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? value.split(", ").filter(Boolean) : [];
+  const filteredUsers = users.filter(u => u.regu); // Hanya tampilkan user yang memiliki regu
+
+  const toggle = (name: string) => {
+    const idx = selected.indexOf(name);
+    if (idx >= 0) selected.splice(idx, 1);
+    else selected.push(name);
+    onChange(selected.join(", "));
+  };
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm text-left focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+      >
+        {selected.length > 0
+          ? <span className="text-gray-900">{selected.length} PIC dipilih</span>
+          : <span className="text-gray-400">Pilih PIC...</span>}
+        <span className="float-right mt-0.5">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto border border-gray-200 rounded-xl bg-white shadow-lg p-1.5 space-y-0.5">
+            {filteredUsers.map((u) => {
+              const checked = selected.includes(u.name);
+              return (
+                <label key={u.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 cursor-pointer text-sm">
+                  <input type="checkbox" checked={checked} onChange={() => toggle(u.name)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  {u.name}
+                </label>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function LototoPage() {
@@ -50,6 +93,7 @@ export default function LototoPage() {
     new_data: Record<string, any> | null;
   } | null>(null);
   const [showCutiDialog, setShowCutiDialog] = useState(false);
+  const [picUsers, setPicUsers] = useState<{ id: number; name: string }[]>([]);
 
   const [form, setForm] = useState<{
     name: string; location: string; unit: string; status: SGStatus;
@@ -58,7 +102,7 @@ export default function LototoPage() {
     activeTime: string; finishTime: string;
   }>({
     name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
-    pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
+    pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
     activeTime: "", finishTime: "",
   });
 
@@ -75,6 +119,20 @@ export default function LototoPage() {
   const selesai = switchGears.filter((s) => s.status === "Selesai").length;
   const lototoSG = switchGears.filter((s) => s.status === "Aktif Lototo");
   const filteredSG = lototoSG.filter((s) => isInRange(s.activeTime, startDate, endDate));
+
+  // ── Users untuk multi-select PIC ──
+  useEffect(() => {
+    const fetchPicUsers = async () => {
+      const supabase = getSupabaseClient();
+      const { data } = await supabase
+        .from("users")
+        .select("id, name, regu")
+        .in("role", ["Admin", "Supervisor", "Operator"])
+        .order("name");
+      if (data) setPicUsers(data);
+    };
+    fetchPicUsers();
+  }, []);
 
   const handleDownloadPdf = () => {
     const pdfColumns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
@@ -94,7 +152,7 @@ export default function LototoPage() {
     setEditId(null);
     setForm({
       name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
-      pic: "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
+      pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
       activeTime: getCurrentDatetimeLocal(), finishTime: "",
     });
     setModalOpen(true);
@@ -207,7 +265,7 @@ export default function LototoPage() {
       },
     },
     { key: "description", header: "Keterangan", render: (s: SwitchGear) => (
-      <span className="truncate max-w-[150px] block" title={s.description}>{s.description}</span>
+      <span className="block" title={s.description}>{s.description}</span>
     ) },
     ...(canEdit ? [{
       key: "actions" as const, header: "Action", render: (s: SwitchGear) => (
@@ -232,9 +290,9 @@ export default function LototoPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard icon={Layers} label="Total Pekerjaan" value={switchGears.length} variant="blue" />
-        <StatCard icon={CheckCircle} label="Lototo Aktif" value={aktif} variant="green" href="/lototo" />
+        <StatCard icon={CheckCircle} label="Lototo Aktif" value={aktif} variant="red" href="/lototo" />
         <StatCard icon={Wrench} label="SG Maintenance" value={maintenance} variant="yellow" href="/sg-maintenance" />
-        <StatCard icon={CheckCheck} label="SG Selesai" value={selesai} variant="red" />
+        <StatCard icon={CheckCheck} label="SG Selesai" value={selesai} variant="green" />
       </div>
 
       <FilterBar
@@ -360,7 +418,7 @@ export default function LototoPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">PIC</label>
-              <input type="text" required value={form.pic} onChange={(e) => setForm({ ...form, pic: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="Nama PIC" />
+              <PicDropdown users={picUsers} value={form.pic} onChange={(v) => setForm({ ...form, pic: v })} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Peminta</label>

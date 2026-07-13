@@ -19,9 +19,10 @@ interface Props {
   existingUrls?: string[];
   onImagesChange: (urls: string[]) => void;
   onUploadingChange?: (uploading: boolean) => void;
+  maxImages?: number;
 }
 
-export default function ImageUpload({ existingUrls = [], onImagesChange, onUploadingChange }: Props) {
+export default function ImageUpload({ existingUrls = [], onImagesChange, onUploadingChange, maxImages = 3 }: Props) {
   const [images, setImages] = useState<UploadedImage[]>(
     existingUrls.map((url) => ({
       url,
@@ -33,7 +34,7 @@ export default function ImageUpload({ existingUrls = [], onImagesChange, onUploa
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const remaining = MAX_FILES - images.filter((img) => img.url).length;
+  const remaining = maxImages - images.filter((img) => img.url).length;
 
   // Sync perubahan images ke parent — dipisah dari setImages agar tidak
   // memicu setState parent selama proses render React
@@ -153,7 +154,7 @@ export default function ImageUpload({ existingUrls = [], onImagesChange, onUploa
         <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 bg-gray-50 hover:bg-blue-50 transition-colors">
           <Upload size={24} className="text-gray-400 mb-2" />
           <span className="text-sm text-gray-500 font-medium">
-            Klik untuk upload (max {MAX_FILES} gambar)
+            Klik untuk upload (max {maxImages} gambar)
           </span>
           <span className="text-xs text-gray-400 mt-1">
             Format: JPG/PNG, max 5MB/file

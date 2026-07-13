@@ -200,7 +200,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const mapped = mapSG(inserted);
       setSwitchGears(prev => [mapped, ...prev]);
       addLog("Tambah SG", `Menambahkan ${data.name}`, "Switch Gear");
-      notifyDataChange({ title: "SG Baru", body: `${data.name} ditambahkan`, url: "/laporan-harian" });
+      notifyDataChange({ title: "SG Baru", body: `${data.name} ditambahkan`, url: "/laporan-lototo" });
       return mapped;
     } catch (err) {
       console.error("addSwitchGear error:", err);
@@ -238,7 +238,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const mapped = mapSG(updated);
       setSwitchGears(prev => prev.map(s => s.id === id ? mapped : s));
       addLog("Edit SG", `Mengubah data ${mapped.name}`, "Switch Gear");
-      notifyDataChange({ title: "SG Diubah", body: `${mapped.name} diubah`, url: "/laporan-harian" });
+      notifyDataChange({ title: "SG Diubah", body: `${mapped.name} diubah`, url: "/laporan-lototo" });
       return mapped;
     } catch (err) {
       console.error("updateSwitchGear error:", err);
@@ -275,7 +275,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setSwitchGears(prev => prev.filter(s => s.id !== id));
       if (item) {
         addLog("Hapus SG", `Menghapus ${item.name}`, "Switch Gear");
-        notifyDataChange({ title: "SG Dihapus", body: `${item.name} dihapus`, url: "/laporan-harian" });
+        notifyDataChange({ title: "SG Dihapus", body: `${item.name} dihapus`, url: "/laporan-lototo" });
       }
     } catch (err) {
       console.error("deleteSwitchGear error:", err);
