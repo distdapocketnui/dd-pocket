@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS switch_gears (
 CREATE TABLE IF NOT EXISTS activity_logs (
   id BIGSERIAL PRIMARY KEY,
   action TEXT NOT NULL,
-  user TEXT NOT NULL,
+  "user" TEXT NOT NULL,
   page TEXT NOT NULL DEFAULT '',
   timestamp TEXT NOT NULL DEFAULT '',
   details TEXT NOT NULL DEFAULT '',
