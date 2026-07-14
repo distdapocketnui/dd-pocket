@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -9,9 +10,11 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
  * Menghapus subscription push notification dari Supabase
  */
 export async function POST(request: Request) {
+  let endpoint: string | undefined;
+
   try {
     const body = await request.json();
-    const { endpoint } = body;
+    endpoint = body.endpoint;
 
     if (!endpoint) {
       return NextResponse.json(
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("[Unsubscribe] Error:", err);
+    logger.error('[Unsubscribe] Error deleting subscription', err, { endpoint });
     return NextResponse.json(
       { error: err?.message || "Gagal menghapus subscription" },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -9,9 +10,14 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
  * Menyimpan subscription push notification ke Supabase
  */
 export async function POST(request: Request) {
+  let endpoint: string | undefined;
+  let username: string | undefined;
+
   try {
     const body = await request.json();
-    const { endpoint, keys, username } = body;
+    endpoint = body.endpoint;
+    const keys = body.keys;
+    username = body.username;
 
     if (!endpoint || !keys?.p256dh || !keys?.auth) {
       return NextResponse.json(
@@ -60,7 +66,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("[Subscribe] Error:", err);
+    logger.error('[Subscribe] Error saving subscription', err, { endpoint, username });
     return NextResponse.json(
       { error: err?.message || "Gagal menyimpan subscription" },
       { status: 500 }

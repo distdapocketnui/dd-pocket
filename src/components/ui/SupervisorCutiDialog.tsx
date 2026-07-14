@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { User } from "@/types";
 import { Loader2 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   open: boolean;
@@ -37,7 +38,7 @@ export default function SupervisorCutiDialog({ open, onClose, onConfirm }: Props
         .order("name");
       if (data) setSupervisors(data as User[]);
     } catch (err) {
-      console.error("fetch supervisors error:", err);
+      logger.error('fetch supervisors error', err);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendPushToAll } from "@/lib/push-sender";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/notifications/send
@@ -7,9 +8,14 @@ import { sendPushToAll } from "@/lib/push-sender";
  * Dipanggil setelah approval request dibuat.
  */
 export async function POST(request: Request) {
+  let title: string | undefined;
+
   try {
     const body = await request.json();
-    const { title, body: message, url, tag } = body;
+    title = body.title;
+    const message = body.body;
+    const url = body.url;
+    const tag = body.tag;
 
     if (!title || !message) {
       return NextResponse.json(
@@ -32,7 +38,7 @@ export async function POST(request: Request) {
       failed: result.failed,
     });
   } catch (err: any) {
-    console.error("[SendNotification] Error:", err);
+    logger.error('[SendNotification] Error sending broadcast', err, { title });
     return NextResponse.json(
       { error: err?.message || "Gagal mengirim notifikasi" },
       { status: 500 }

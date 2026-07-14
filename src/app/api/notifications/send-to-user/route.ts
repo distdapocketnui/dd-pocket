@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendPushToUsername } from "@/lib/push-sender";
+import { logger } from "@/lib/logger";
 
 /**
  * POST /api/notifications/send-to-user
@@ -7,9 +8,16 @@ import { sendPushToUsername } from "@/lib/push-sender";
  * Dipanggil dari client setelah approve/reject approval request.
  */
 export async function POST(request: Request) {
+  let username: string | undefined;
+  let title: string | undefined;
+
   try {
     const body = await request.json();
-    const { username, title, body: message, url, tag } = body;
+    username = body.username;
+    title = body.title;
+    const message = body.body;
+    const url = body.url;
+    const tag = body.tag;
 
     if (!username || !title || !message) {
       return NextResponse.json(
@@ -32,7 +40,7 @@ export async function POST(request: Request) {
       failed: result.failed,
     });
   } catch (err: any) {
-    console.error("[SendToUser] Error:", err);
+    logger.error('[SendToUser] Error sending notification', err, { username, title });
     return NextResponse.json(
       { error: err?.message || "Gagal mengirim notifikasi" },
       { status: 500 }

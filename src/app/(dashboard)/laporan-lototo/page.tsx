@@ -15,6 +15,7 @@ import { SwitchGear, SGStatus } from "@/types";
 import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod } from "@/lib/date";
 import { Send, Edit3, Trash2, Loader2, Server } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 const UNITS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "SG Lainnya"];
 
@@ -174,7 +175,7 @@ export default function LaporanHarianPage() {
       setEditModal(false);
       setEditId(null);
     } catch (err) {
-      console.error("update error:", err);
+      logger.error('update error', err, { editId });
       alert("Gagal menyimpan perubahan");
     } finally {
       setSaving(false);

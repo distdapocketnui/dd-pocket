@@ -11,6 +11,7 @@ import LineChart from "@/components/ui/LineChart";
 import ImageUpload from "@/components/ui/ImageUpload";
 import ImageGallery from "@/components/ui/ImageGallery";
 import type { LaporanP2B, UnitPengaturan } from "@/types";
+import { logger } from "@/lib/logger";
 
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Power House", "Power Plant", "Tambang", "Lainnya"];
 const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
@@ -221,7 +222,7 @@ export default function LaporanP2BPage() {
       if (error) throw error;
       setData((rows || []) as LaporanP2B[]);
     } catch (err) {
-      console.error("fetch laporan_p2b error:", err instanceof Error ? err.message : err);
+      logger.error('fetch laporan_p2b error', err);
     } finally {
       setLoading(false);
     }
@@ -313,7 +314,7 @@ export default function LaporanP2BPage() {
           .from("laporan_p2b")
           .insert(updateData)
           .select();
-        console.log("[P2B] insert result:", { inserted, error });
+        logger.info('[P2B] insert result', { inserted, error });
         if (error) throw error;
       }
 
@@ -323,7 +324,7 @@ export default function LaporanP2BPage() {
       fetchData();
     } catch (err) {
       const errObj = err as any;
-      console.error("save laporan_p2b error:", errObj);
+      logger.error('save laporan_p2b error', errObj);
       alert("Gagal menyimpan data: " + (errObj?.message || errObj?.error_description || JSON.stringify(errObj).slice(0, 200)));
     } finally {
       setSaving(false);
@@ -375,7 +376,7 @@ export default function LaporanP2BPage() {
       setConfirmDelete(null);
       fetchData();
     } catch (err) {
-      console.error("delete laporan_p2b error:", err instanceof Error ? err.message : err);
+      logger.error('delete laporan_p2b error', err);
       alert("Gagal menghapus data");
     }
   };

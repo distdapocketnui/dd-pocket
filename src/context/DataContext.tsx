@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { SwitchGear, User, ChangeApproval, UserRole } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { hashPassword } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import { notifyAdminAfterApprovalRequest, notifyUserAfterReview, notifyDataChange } from "@/lib/notify-admin";
 
 interface DataContextType {
@@ -120,7 +122,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setDataReady(true);
       setInitialized(true);
     } catch (err) {
-      console.error("Failed to fetch initial data:", err);
+      logger.error('Failed to fetch initial data', err, { module: 'DataContext', action: 'fetchAll' });
       setDataReady(true);
       setInitialized(true);
     }
@@ -203,7 +205,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       notifyDataChange({ title: "SG Baru", body: `${data.name} ditambahkan`, url: "/laporan-lototo" });
       return mapped;
     } catch (err) {
-      console.error("addSwitchGear error:", err);
+      logger.error('addSwitchGear error', err, { module: 'DataContext', action: 'addSwitchGear', name: data.name });
       return null;
     }
   }, [addLog]);
@@ -241,7 +243,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       notifyDataChange({ title: "SG Diubah", body: `${mapped.name} diubah`, url: "/laporan-lototo" });
       return mapped;
     } catch (err) {
-      console.error("updateSwitchGear error:", err);
+      logger.error('updateSwitchGear error', err, { module: 'DataContext', action: 'updateSwitchGear', id });
       return null;
     }
   }, [addLog]);
@@ -278,7 +280,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         notifyDataChange({ title: "SG Dihapus", body: `${item.name} dihapus`, url: "/laporan-lototo" });
       }
     } catch (err) {
-      console.error("deleteSwitchGear error:", err);
+      logger.error('deleteSwitchGear error', err, { module: 'DataContext', action: 'deleteSwitchGear', id });
     }
   }, [switchGears, addLog]);
 
@@ -290,6 +292,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addUser = useCallback(async (data: Omit<User, "id">) => {
     try {
       const supabase = getSupabaseClient();
+      // Hash password sebelum disimpan
+      const hashedPassword = await hashPassword(data.password);
+      
       const { data: inserted, error } = await supabase
         .from("users")
         .insert({
@@ -298,7 +303,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           unit: data.unit,
           department: data.department,
           username: data.username,
-          password: data.password,
+          password: hashedPassword,
           role: data.role,
           regu: data.regu || "",
           status: data.status,
@@ -314,7 +319,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       notifyDataChange({ title: "User Baru", body: `User ${data.name} ditambahkan`, url: "/pengguna" });
       return mapped;
     } catch (err) {
-      console.error("addUser error:", err);
+      logger.error('addUser error', err, { module: 'DataContext', action: 'addUser', name: data.name });
       return null;
     }
   }, [addLog]);
@@ -329,7 +334,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (data.unit !== undefined) updateData.unit = data.unit;
       if (data.department !== undefined) updateData.department = data.department;
       if (data.username !== undefined) updateData.username = data.username;
-      if (data.password !== undefined) updateData.password = data.password;
+      // Hash password jika ada perubahan password
+      if (data.password !== undefined) {
+        console.log('Hashing password in updateUser:', data.password.length > 0 ? '[HIDDEN]' : '(empty)');
+        updateData.password = await hashPassword(data.password);
+        console.log('Hashed password:', updateData.password.substring(0, 20) + '...');
+      }
       if (data.role !== undefined) updateData.role = data.role;
       if (data.regu !== undefined) updateData.regu = data.regu;
       if (data.status !== undefined) updateData.status = data.status;
@@ -359,7 +369,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       return mapped;
     } catch (err) {
-      console.error("updateUser error:", err);
+      logger.error('updateUser error', err, { module: 'DataContext', action: 'updateUser', id });
       return null;
     }
   }, [addLog]);
@@ -377,7 +387,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         notifyDataChange({ title: "User Dihapus", body: `User ${item.name} dihapus`, url: "/pengguna" });
       }
     } catch (err) {
-      console.error("deleteUser error:", err);
+      logger.error('deleteUser error', err, { module: 'DataContext', action: 'deleteUser', id });
     }
   }, [users, addLog]);
 
@@ -438,7 +448,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       return mapped;
     } catch (err) {
-      console.error("createApproval error:", err);
+      logger.error('createApproval error', err, { module: 'DataContext', action: 'createApproval' });
       return null;
     }
   }, [addLog]);
@@ -594,7 +604,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (err) {
-      console.error("approveApproval error:", err);
+      logger.error('approveApproval error', err, { module: 'DataContext', action: 'approveApproval', approvalId: id });
       const message = err instanceof Error ? err.message : "Terjadi kesalahan saat menyetujui";
       alert("Gagal menyetujui: " + message);
     }
@@ -633,7 +643,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         url: "/",
       });
     } catch (err) {
-      console.error("rejectApproval error:", err);
+      logger.error('rejectApproval error', err, { module: 'DataContext', action: 'rejectApproval', approvalId: id });
     }
   }, [approvals, addLog]);
 

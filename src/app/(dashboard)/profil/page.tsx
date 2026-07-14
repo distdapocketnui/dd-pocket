@@ -121,12 +121,13 @@ export default function ProfilPage() {
       value: (
         <div className="relative inline-flex items-center">
           <span className="font-mono text-sm tracking-wider">
-            {showPassword ? user.password : "••••••••••"}
+            {showPassword ? (user.password.startsWith('$2') ? '•••••••••• (terenkripsi)' : user.password) : "••••••••••"}
           </span>
           <button
             onClick={() => setShowPassword(!showPassword)}
             className="ml-2 p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
             title={showPassword ? "Sembunyikan" : "Tampilkan"}
+            disabled={user.password.startsWith('$2')}
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>

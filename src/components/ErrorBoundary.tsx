@@ -1,6 +1,7 @@
 "use client";
 
 import { Component, ReactNode } from "react";
+import { logger } from "@/lib/logger";
 
 interface Props {
   children: ReactNode;
@@ -22,10 +23,12 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("🔥 ErrorBoundary caught:", error.name, error.message);
-    console.error("🔥 Component stack:", errorInfo.componentStack);
-    // Kirim error details ke console agar bisa diakses user
-    console.error("🔥 Full error:", error);
+    logger.error('ErrorBoundary caught error', error, {
+      module: 'ErrorBoundary',
+      errorName: error.name,
+      errorMessage: error.message,
+      componentStack: errorInfo.componentStack
+    });
   }
 
   handleReset = () => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 
 const BUCKET_NAME = "images";
 
@@ -27,8 +28,11 @@ function extractFilePath(url: string): string | null {
  * Output: { deleted: number }
  */
 export async function POST(request: NextRequest) {
+  let urls: string[] = [];
+
   try {
-    const { urls } = await request.json();
+    const { urls: inputUrls } = await request.json();
+    urls = inputUrls;
 
     if (!Array.isArray(urls) || urls.length === 0) {
       return NextResponse.json({ deleted: 0 });
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ deleted: 0 });
     }
 
-    // Pakai service_role key untuk bypass RLS
+    // Pakai service_role key for bypass RLS
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -57,7 +61,7 @@ export async function POST(request: NextRequest) {
       .remove(filePaths);
 
     if (error) {
-      console.error("[StorageDelete] Error:", error);
+      logger.error('[StorageDelete] Error deleting files', error, { bucket: BUCKET_NAME, filePaths });
       return NextResponse.json(
         { error: "Gagal menghapus file: " + error.message },
         { status: 500 },
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ deleted: filePaths.length });
   } catch (error: any) {
-    console.error("[StorageDelete] Error:", error);
+    logger.error('[StorageDelete] Unexpected error', error, { urls });
     return NextResponse.json(
       { error: error?.message || "Gagal menghapus file" },
       { status: 500 },

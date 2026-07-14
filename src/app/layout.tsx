@@ -4,6 +4,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { DataProvider } from "@/context/DataContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PwaSetup from "@/components/PwaSetup";
+import PasswordResetModal from "@/components/PasswordResetModal";
 
 export const metadata: Metadata = {
   title: "Distribusi Daya — Monitoring LOTOTO",
@@ -41,6 +42,7 @@ export default function RootLayout({
           <DataProvider>
             <ErrorBoundary>
               {children}
+              <PasswordResetModal />
             </ErrorBoundary>
           </DataProvider>
         </AuthProvider>

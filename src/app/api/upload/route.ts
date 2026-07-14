@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadToStorage } from "@/lib/storage-server";
+import { logger } from "@/lib/logger";
 
 export const maxDuration = 30;
 
@@ -11,9 +12,11 @@ export const maxDuration = 30;
  * Output: { url: string }
  */
 export async function POST(request: NextRequest) {
+  let file: File | null = null;
+
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as File | null;
+    file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json(
@@ -51,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url });
   } catch (error: any) {
-    console.error("[Upload] Error:", error);
+    logger.error('[Upload] Error uploading file', error, { fileName: file?.name });
     return NextResponse.json(
       { error: error?.message || "Gagal upload gambar" },
       { status: 500 },

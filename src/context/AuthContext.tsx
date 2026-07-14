@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { User, UserRole } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { verifyPassword } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
@@ -10,6 +12,8 @@ interface AuthContextType {
   logout: () => void;
   hasRole: (...roles: UserRole[]) => boolean;
   refreshUser: () => Promise<void>;
+  showPasswordResetModal: boolean;
+  setShowPasswordResetModal: (show: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,13 +37,28 @@ function mapToUser(raw: any): User {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
 
   // Load user from session storage on mount (fast restore)
   useEffect(() => {
     const stored = localStorage.getItem("ddp_current_user");
     if (stored) {
       try {
-        setUser(JSON.parse(stored));
+        const userData = JSON.parse(stored);
+        setUser(userData);
+        
+        // Cek apakah user login dengan password default (password123)
+        // Kita harus compare dengan bcrypt karena password tersimpan sebagai hash
+        const checkDefaultPassword = async () => {
+          if (userData.password) {
+            const isDefault = await verifyPassword('password123', userData.password);
+            if (isDefault) {
+              console.log('Detected default password, setting showPasswordResetModal to true');
+              setShowPasswordResetModal(true);
+            }
+          }
+        };
+        checkDefaultPassword();
       } catch {
         localStorage.removeItem("ddp_current_user");
       }
@@ -68,6 +87,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const mapped = mapToUser(data);
       setUser(mapped);
       localStorage.setItem("ddp_current_user", JSON.stringify(mapped));
+      
+      // Cek apakah user masih pakai password default
+      const checkDefaultPassword = async () => {
+        if (mapped.password) {
+          const isDefault = await verifyPassword('password123', mapped.password);
+          if (isDefault) {
+            setShowPasswordResetModal(true);
+          }
+        }
+      };
+      checkDefaultPassword();
     } catch {
       localStorage.removeItem("ddp_current_user");
       setUser(null);
@@ -92,16 +122,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (username: string, password: string) => {
     try {
+      logger.info('Login attempt', { module: 'AuthContext', action: 'login', userId: username });
+      
       const supabase = getSupabaseClient();
+      // Ambil user berdasarkan username dan status aktif
       const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("username", username)
-        .eq("password", password)
         .eq("status", "Aktif")
         .single();
 
       if (error || !data) {
+        logger.warn('Login failed: user not found or inactive', { module: 'AuthContext', action: 'login', userId: username });
+        return { success: false, message: "Username atau password salah, atau akun tidak aktif" };
+      }
+
+      // Verifikasi password dengan hash yang tersimpan
+      const isPasswordValid = await verifyPassword(password, data.password);
+      if (!isPasswordValid) {
+        logger.warn('Login failed: invalid password', { module: 'AuthContext', action: 'login', userId: username });
         return { success: false, message: "Username atau password salah, atau akun tidak aktif" };
       }
 
@@ -109,12 +149,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(mapped);
       localStorage.setItem("ddp_current_user", JSON.stringify(mapped));
 
+      // Cek apakah user login dengan password default
+      const checkDefaultPassword = async () => {
+        if (mapped.password) {
+          const isDefault = await verifyPassword('password123', mapped.password);
+          if (isDefault) {
+            setShowPasswordResetModal(true);
+          }
+        }
+      };
+      checkDefaultPassword();
+
       // Log activity
       await addLog("Login", "User login ke sistem", "Dashboard", mapped);
+      logger.info('Login successful', { module: 'AuthContext', action: 'login', userId: username });
 
       return { success: true, message: "" };
     } catch (err) {
-      console.error("Login error:", err);
+      logger.error('Login error', err, { module: 'AuthContext', action: 'login', userId: username });
       return { success: false, message: "Terjadi kesalahan koneksi database" };
     }
   }, [addLog]);
@@ -136,7 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
   const [timeoutCountdown, setTimeoutCountdown] = useState(60);
 
-  // Auto logout after 30 minutes of inactivity (dengan peringatan)
+  // Auto logout after 15 minutes of inactivity (dengan peringatan)
   useEffect(() => {
     if (!user) return;
 
@@ -148,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowTimeoutWarning(false);
       setTimeoutCountdown(60);
       logout();
-      addLog("Logout", "User logout otomatis karena tidak ada aktivitas selama 10 jam", "Dashboard", user);
+      addLog("Logout", "User logout otomatis karena tidak ada aktivitas selama 15 menit", "Dashboard", user);
     };
 
     const startCountdown = () => {
@@ -178,16 +230,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowTimeoutWarning(false);
       setTimeoutCountdown(60);
 
-      // Tampilkan peringatan 60 detik sebelum 10 jam
+      // Tampilkan peringatan 60 detik sebelum 15 menit
       warningTimeout = setTimeout(() => {
         startCountdown();
-      }, 10 * 60 * 60 * 1000 - 60 * 1000);
+      }, 15 * 60 * 1000 - 60 * 1000);
 
-      // Logout setelah 10 jam
+      // Logout setelah 15 menit
       timeout = setTimeout(() => {
         clearInterval(countdownInterval);
         doLogout();
-      }, 10 * 60 * 60 * 1000);
+      }, 15 * 60 * 1000);
     };
 
     const events = ["mousemove", "mousedown", "click", "keydown", "touchstart", "scroll", "wheel"];
@@ -221,7 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, hasRole, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, hasRole, refreshUser, showPasswordResetModal, setShowPasswordResetModal }}>
       {children}
       <TimeoutWarning />
     </AuthContext.Provider>

@@ -8,7 +8,8 @@ import DataTable from "@/components/ui/DataTable";
 import Modal from "@/components/ui/Modal";
 import { User, UserRole, UserStatus } from "@/types";
 import { getInitials, roleBadgeClass, statusUserBadgeClass, statusUserDotClass } from "@/lib/utils";
-import { Plus, Eye, EyeOff, CheckCircle, X } from "lucide-react";
+import { Plus, Eye, EyeOff, CheckCircle, X, KeyRound, AlertTriangle } from "lucide-react";
+import { verifyPassword } from "@/lib/auth";
 export default function PenggunaPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -27,6 +28,9 @@ export default function PenggunaPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [changePassword, setChangePassword] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+  const [resetUserId, setResetUserId] = useState<number | null>(null);
   const [form, setForm] = useState<{
     name: string; email: string; phone: string; unit: string; department: string;
     username: string; password: string; role: UserRole; regu: string; status: UserStatus;
@@ -38,13 +42,18 @@ export default function PenggunaPage() {
 
   const openAdd = () => {
     setEditId(null);
+    setChangePassword(false);
     setForm({ name: "", email: "", phone: "", unit: "IT", department: "", username: "", password: "", role: "Operator", regu: "", status: "Aktif" });
     setModalOpen(true);
   };
 
   const openEdit = (u: User) => {
     setEditId(u.id);
-    setForm({ name: u.name, email: u.email, phone: u.phone, unit: u.unit, department: u.department, username: u.username, password: u.password, role: u.role, regu: u.regu, status: u.status });
+    setChangePassword(false);
+    // Tampilkan password asli (plain text) untuk edit, bukan hash
+    // Jika password sudah ter-hash (dimulai dengan $2), biarkan kosong
+    const passwordValue = u.password.startsWith('$2') ? '' : u.password;
+    setForm({ name: u.name, email: u.email, phone: u.phone, unit: u.unit, department: u.department, username: u.username, password: passwordValue, role: u.role, regu: u.regu, status: u.status });
     setModalOpen(true);
   };
 
@@ -58,16 +67,62 @@ export default function PenggunaPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.password.length < 8) {
-      alert("Password minimal 8 karakter");
-      return;
-    }
+    
+    // Validasi password
     if (editId) {
+      // Edit mode: password hanya wajib jika changePassword dicentang
+      if (changePassword && form.password.length < 8) {
+        alert("Password minimal 8 karakter");
+        return;
+      }
+      // Jika tidak ganti password, hapus field password dari form
+      if (!changePassword) {
+        const { password, ...formWithoutPassword } = form;
+        updateUser(editId, formWithoutPassword as any);
+        setModalOpen(false);
+        return;
+      }
+    } else {
+      // Add mode: password wajib
+      if (form.password.length < 8) {
+        alert("Password minimal 8 karakter");
+        return;
+      }
+    }
+    
+    if (editId) {
+      // Edit mode: pastikan password ter-hash jika changePassword
+      if (changePassword && form.password) {
+        // Password sudah plain text, DataContext akan hash
+        console.log('Updating password for user', editId, form.password);
+      }
       updateUser(editId, form);
     } else {
       addUser(form);
     }
     setModalOpen(false);
+  };
+
+  const openResetConfirm = (userId: number) => {
+    setResetUserId(userId);
+    setResetConfirmOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUserId) return;
+    
+    try {
+      const { updateUser } = useData();
+      const hashedDefaultPassword = "$2b$12$9bMxPzEqnN7zgJ5K8LpOYu.R3vVqWzXyH4bN6cM1dF2eA3fG4hI5j";
+      
+      await updateUser(resetUserId, { password: "password123" });
+      
+      setResetConfirmOpen(false);
+      setResetUserId(null);
+      alert("Password berhasil direset ke password123");
+    } catch (err) {
+      alert("Gagal mereset password");
+    }
   };
 
   const columns = [
@@ -114,6 +169,9 @@ export default function PenggunaPage() {
           <div className="flex gap-1.5">
             <button onClick={() => openEdit(u)} className="w-7 h-7 rounded flex items-center justify-center bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors" title="Edit">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button onClick={() => openResetConfirm(u.id)} className="w-7 h-7 rounded flex items-center justify-center bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white transition-colors" title="Reset Password">
+              <KeyRound width="13" height="13" />
             </button>
             <button onClick={() => handleDelete(u.id)} className="w-7 h-7 rounded flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors" title="Hapus">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -182,28 +240,59 @@ export default function PenggunaPage() {
               <input type="text" required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white outline-none transition-all" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+              {editId && (
+                <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={changePassword}
+                    onChange={(e) => {
+                      setChangePassword(e.target.checked);
+                      if (!e.target.checked) {
+                        setForm({ ...form, password: "" });
+                      }
+                    }}
+                    className="w-4 h-4 accent-blue-600 rounded"
+                  />
+                  <span className="text-xs font-semibold text-gray-600">Ganti Password</span>
+                </label>
+              )}
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Password
+                {editId && !changePassword && (
+                  <span className="ml-2 text-xs font-normal text-gray-500">
+                    (centang untuk mengubah)
+                  </span>
+                )}
+              </label>
               <div className="relative">
-                <input type={showPassword ? "text" : "password"} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={`w-full px-3.5 py-2.5 pr-10 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white outline-none transition-all ${
-                  form.password && (form.password.length >= 8 ? "border-emerald-400 focus:border-emerald-500" : "border-red-300 focus:border-red-500")
-                }`} minLength={8} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={form.password} 
+                  onChange={(e) => setForm({ ...form, password: e.target.value })} 
+                  className={`w-full px-3.5 py-2.5 pr-10 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white outline-none transition-all ${
+                    form.password && (form.password.length >= 8 ? "border-emerald-400 focus:border-emerald-500" : "border-red-300 focus:border-red-500")
+                  }`} 
+                  minLength={8}
+                  required={!editId}
+                  disabled={editId && !changePassword ? true : false}
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors" disabled={editId && !changePassword ? true : false}>
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <div className={`flex items-center gap-1 text-xs transition-all ${
-                  form.password.length >= 8 ? "text-emerald-600" : form.password.length > 0 ? "text-red-500" : "text-gray-400"
-                }`}>
-                  {form.password.length >= 8 ? <CheckCircle size={12} /> : <X size={12} />}
-                  <span>Minimal 8 karakter</span>
-                </div>
-                {form.password.length > 0 && (
+              {form.password.length > 0 && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <div className={`flex items-center gap-1 text-xs transition-all ${
+                    form.password.length >= 8 ? "text-emerald-600" : "text-red-500"
+                  }`}>
+                    {form.password.length >= 8 ? <CheckCircle size={12} /> : <X size={12} />}
+                    <span>Minimal 8 karakter</span>
+                  </div>
                   <span className={`text-[10px] font-medium ${form.password.length >= 8 ? "text-emerald-500" : "text-red-400"}`}>
                     ({form.password.length}/8)
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -232,6 +321,46 @@ export default function PenggunaPage() {
             </div>
           </div>
         </form>
+      </Modal>
+
+      {/* Reset Password Confirmation Modal */}
+      <Modal
+        open={resetConfirmOpen}
+        onClose={() => setResetConfirmOpen(false)}
+        title="Reset Password"
+        footer={
+          <div className="flex gap-3">
+            <button
+              onClick={() => setResetConfirmOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Tidak
+            </button>
+            <button
+              onClick={handleResetPassword}
+              className="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors"
+            >
+              Ya, Reset Password
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-gray-700">
+                Apakah Anda yakin ingin mereset password user ini?
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Password akan direset ke: <strong className="text-gray-700">password123</strong>
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                User harus mengganti password setelah login berikutnya.
+              </p>
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );
