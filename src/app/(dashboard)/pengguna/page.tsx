@@ -112,16 +112,27 @@ export default function PenggunaPage() {
     if (!resetUserId) return;
     
     try {
-      const { updateUser } = useData();
-      const hashedDefaultPassword = "$2b$12$9bMxPzEqnN7zgJ5K8LpOYu.R3vVqWzXyH4bN6cM1dF2eA3fG4hI5j";
+      // Get the user data first
+      const userToReset = users.find(u => u.id === resetUserId);
+      if (!userToReset) {
+        alert("User tidak ditemukan");
+        return;
+      }
       
-      await updateUser(resetUserId, { password: "password123" });
+      // Update only the password field
+      const result = await updateUser(resetUserId, { password: "password123" });
+      
+      if (!result) {
+        alert("Gagal mereset password");
+        return;
+      }
       
       setResetConfirmOpen(false);
       setResetUserId(null);
       alert("Password berhasil direset ke password123");
     } catch (err) {
-      alert("Gagal mereset password");
+      console.error('Reset password error:', err);
+      alert("Gagal mereset password: " + (err instanceof Error ? err.message : "Unknown error"));
     }
   };
 
