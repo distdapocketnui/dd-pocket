@@ -57,7 +57,7 @@ export default function FilterBar({ startDate, endDate, onStartDateChange, onEnd
             {showDownload && (
               <button
                 onClick={handleDownloadClick}
-                className="w-full sm:w-auto p-2 sm:px-3 sm:py-1.5 bg-rose-600 text-white text-xs font-medium rounded-lg hover:bg-rose-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
+                className="w-full sm:w-auto p-2 sm:px-3 sm:py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
               >
                 <Download size={14} />
                 <span>Download PDF</span>
@@ -82,7 +82,7 @@ export default function FilterBar({ startDate, endDate, onStartDateChange, onEnd
               </button>
               <button
                 onClick={handleConfirmOk}
-                className="px-4 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors"
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors"
               >
                 OK
               </button>

@@ -250,7 +250,11 @@ export default function LaporanP2BPage() {
   // ── Filter by date range + username + kegiatan + regu ──
   const filtered = data.filter((r) => {
     if (!isInRange(r.tanggal_jam, startDate, endDate)) return false;
-    if (usernameFilter && r.nama !== usernameFilter) return false;
+    // Filter by PIC (bukan by nama pembuat laporan)
+    if (usernameFilter) {
+      const pics = r.pic ? r.pic.split(", ").filter(Boolean) : [];
+      if (!pics.includes(usernameFilter)) return false;
+    }
     if (kegiatanFilter && r.kegiatan !== kegiatanFilter) return false;
     // Manager/Visitor hanya lihat data dari regu-nya sendiri (kecuali Dayshift)
     if (!canViewAllData && userRegu && userRegu !== "Dayshift" && r.regu !== userRegu) return false;
@@ -469,18 +473,18 @@ _Dikirim oleh ${user?.name || "-"}_`;
     const pengaturanRows = pengaturanBebanData.map((r) => [
       toDate(r.tanggal_jam), r.lokasi, r.level_tegangan || "-",
       r.posisi_power || "-", r.area, r.unit_pindah || "-",
-      r.pic, r.keterangan || "-", r.nama || "-", r.regu || "-",
+      r.pic, r.keterangan || "-", r.regu || "-",
     ]);
 
     const inspeksiRows = inspeksiData.map((r) => [
       toDate(r.tanggal_jam), r.lokasi, r.aktifitas || "-",
       r.kondisi || "-", r.temuan || "-", r.tindak_lanjut || "-",
-      r.pic, r.keterangan || "-", r.nama || "-", r.regu || "-",
+      r.pic, r.keterangan || "-", r.regu || "-",
     ]);
 
     const lainnyaRows = lainnyaData.map((r) => [
       toDate(r.tanggal_jam), r.lokasi, r.aktifitas || "-",
-      r.pic, r.keterangan || "-", r.nama || "-", r.regu || "-",
+      r.pic, r.keterangan || "-", r.regu || "-",
     ]);
 
     const userSuffix = usernameFilter ? usernameFilter.replace(/\s+/g, "_") : "all";
@@ -492,17 +496,17 @@ _Dikirim oleh ${user?.name || "-"}_`;
       sections: [
         {
           title: "Pengaturan Beban",
-          columns: ["Tanggal Jam", "Lokasi", "Level Tegangan", "Posisi Power", "Unit/Area", "Unit Pindah", "PIC", "Keterangan", "Nama", "Regu"],
+          columns: ["Tanggal Jam", "Lokasi", "Level Tegangan", "Posisi Power", "Unit/Area", "Unit Pindah", "PIC", "Keterangan", "Regu"],
           rows: pengaturanRows,
         },
         {
           title: "Inspeksi",
-          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "Kondisi", "Temuan", "Tindak Lanjut", "PIC", "Keterangan", "Nama", "Regu"],
+          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "Kondisi", "Temuan", "Tindak Lanjut", "PIC", "Keterangan", "Regu"],
           rows: inspeksiRows,
         },
         {
           title: "Lainnya",
-          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "PIC", "Keterangan", "Nama", "Regu"],
+          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "PIC", "Keterangan", "Regu"],
           rows: lainnyaRows,
         },
       ],
@@ -803,7 +807,7 @@ _Dikirim oleh ${user?.name || "-"}_`;
         {/* Baris Download */}
         <button
           onClick={() => setShowConfirmDownload(true)}
-          className="w-full sm:w-auto sm:ml-auto p-2 sm:px-3 sm:py-1.5 bg-rose-600 text-white text-xs font-medium rounded-lg hover:bg-rose-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
+          className="w-full sm:w-auto sm:ml-auto p-2 sm:px-3 sm:py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
         >
           <Download size={14} />
           <span>Download PDF</span>
@@ -843,9 +847,9 @@ _Dikirim oleh ${user?.name || "-"}_`;
               canEdit && (
                 <button
                   onClick={openAdd}
-                  className="btn-glow flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+                  className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
                 >
-                  <Plus size={16} /> Tambah
+                  <Plus size={16} /> Tambah Data
                 </button>
               )
             }
