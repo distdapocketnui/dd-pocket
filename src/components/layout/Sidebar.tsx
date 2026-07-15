@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import {
-  LayoutDashboard, Lock, Wrench, FileText, Users, ChevronLeft, X, Database, ClipboardList, ChevronDown,
+  LayoutDashboard, Lock, Wrench, FileText, Users, ChevronLeft, X, Database, ClipboardList, ChevronDown, Activity, Clock
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -23,6 +23,11 @@ const SWITCHGEAR_ITEMS = [
   { href: "/laporan-lototo", label: "Laporan Lototo", icon: FileText },
 ];
 
+const EQUIPMENT_ITEMS = [
+  { href: "/equipment-logs", label: "Start-Stop Equipment", icon: Activity },
+  { href: "/laporan-idle-time", label: "Laporan Idle Time", icon: Clock },
+];
+
 interface Props {
   collapsed: boolean;
   onToggle: () => void;
@@ -35,6 +40,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   const { user } = useAuth();
   const { switchGears } = useData();
   const [switchgearOpen, setSwitchgearOpen] = useState(false);
+  const [equipmentOpen, setEquipmentOpen] = useState(false);
 
   const role = user?.role;
   const isOperator = role === "Operator";
@@ -60,9 +66,12 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     return true; // Other roles can see all switchgear items too
   });
 
+  // Check if any equipment item is active
+  const isEquipmentActive = EQUIPMENT_ITEMS.some(item => pathname === item.href);
+  const shouldShowEquipment = isEquipmentActive || equipmentOpen;
+
   // Check if any switchgear item is active
   const isSwitchgearActive = filteredSwitchgear.some(item => pathname === item.href);
-  // Auto-open switchgear group if a child is active
   const shouldShowSwitchgear = isSwitchgearActive || switchgearOpen;
 
   const navData = filteredNav.map((item) => {
@@ -184,6 +193,62 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                 <div className="hidden group-hover:block absolute left-full top-1/2 -translate-y-1/2 ml-2 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-50 shadow-lg">
                   <div className="font-semibold mb-1">Switchgear</div>
                   {filteredSwitchgear.map((item) => (
+                    <div key={item.href} className="flex items-center gap-2 py-0.5">
+                      <item.icon size={12} />
+                      <span>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {/* Equipment Monitoring (Admin Only) */}
+        {EQUIPMENT_ITEMS.length > 0 && isAdmin && (
+          <div>
+            <button
+              onClick={() => !collapsed && setEquipmentOpen(!equipmentOpen)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative
+                ${shouldShowEquipment ? "bg-blue-600/20 text-white" : "text-white/60 hover:text-white hover:bg-white/5"}`}
+            >
+              <Clock size={18} className="flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="whitespace-nowrap">Equipment Monitoring</span>
+                  <ChevronDown size={16} className={`ml-auto transition-transform ${shouldShowEquipment ? "rotate-180" : ""}`} />
+                </>
+              )}
+              {shouldShowEquipment && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-blue-500 rounded-r-md" />
+              )}
+            </button>
+            {shouldShowEquipment && !collapsed && (
+              <div className="space-y-0.5 mt-0.5">
+                {EQUIPMENT_ITEMS.map((item) => {
+                  const isSubActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={onMobileClose}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative
+                        ${isSubActive ? "bg-blue-600/20 text-white" : "text-white/60 hover:text-white hover:bg-white/5"}`}
+                    >
+                      <item.icon size={16} className="flex-shrink-0" />
+                      <span className="whitespace-nowrap">{item.label}</span>
+                      {isSubActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-blue-500 rounded-r-md" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+            {collapsed && (
+              <div className="relative group">
+                <div className="hidden group-hover:block absolute left-full top-1/2 -translate-y-1/2 ml-2 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-50 shadow-lg">
+                  <div className="font-semibold mb-1">Equipment Monitoring</div>
+                  {EQUIPMENT_ITEMS.map((item) => (
                     <div key={item.href} className="flex items-center gap-2 py-0.5">
                       <item.icon size={12} />
                       <span>{item.label}</span>
