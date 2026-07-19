@@ -1,27 +1,16 @@
 {
-  "name": "Distribusi Daya — Monitoring LOTOTO",
+  "name": "Distda Pocket",
   "short_name": "DD-Pocket",
-  "description": "Monitoring pengamanan switch gear dan status LOTOTO",
+  "description": "Laporan Seksi Pengaturan Beban",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
+      "src": "/logo_NUI.png",
+      "sizes": "any",
       "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }
