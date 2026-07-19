@@ -28,6 +28,8 @@ export interface EquipmentLog {
   timestamp: string;
   reason: string | null;
   shift: string | null;
+  update_beban_pln: number | null;
+  update_beban_btg: number | null;
   created_by: string;
   created_at: string;
 }
@@ -49,9 +51,17 @@ export interface IdleTimeResult {
 
 // Equipment API
 export async function getEquipment(activeOnly = true): Promise<Equipment[]> {
-  const url = `${SUPABASE_URL}/rest/v1/equipment${activeOnly ? '?is_active=eq.true' : ''}&order=unit,name`;
+  let url = `${SUPABASE_URL}/rest/v1/equipment?order=unit,name`;
+  if (activeOnly) {
+    url += '&is_active=eq.true';
+  }
+  
   const response = await fetch(url, { headers });
-  if (!response.ok) throw new Error('Failed to fetch equipment');
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Equipment API Error:', response.status, errorText);
+    throw new Error(`Failed to fetch equipment: ${response.status} ${errorText}`);
+  }
   return response.json();
 }
 

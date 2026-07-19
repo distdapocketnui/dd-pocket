@@ -108,24 +108,7 @@ export default function LaporanHarianPage() {
     const now = new Date().toLocaleString("id-ID", {
       year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
     });
-    const message = `*Laporan Lototo*
-  _Seksi Pengaturan Beban_
-
-  Switch Gear : _${s.name}_
-  Lokasi : _${s.location}_
-  Unit : _${s.unit}_
-  Status : _${s.status}_
-  PIC : _${s.pic}_
-  No. Notif : _${s.notifNo || "-"}_
-  No. Lototo : _${s.lototoNo || "-"}_
-  Peminta : _${s.requester}_
-  Waktu Aktif : _${s.activeTime}_
-  Waktu Selesai : _${s.finishTime || "-"}_
-  Keterangan : _${s.description || "-"}_
-
-  _Source data From : https://distda-pocketnui.web.id_
-  _Date Create : ${now}_
-  _Dikirim oleh ${user?.name || "-"}_`;
+    const message = `--------------------------------\n*Laporan Lototo*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Switch Gear :* _${s.name}_\n*Lokasi :* _${s.location}_\n*Unit :* _${s.unit}_\n*Status :* _${s.status}_\n*PIC :* _${s.pic}_\n*No. Notif :* _${s.notifNo || "-"}_\n*No. Lototo :* _${s.lototoNo || "-"}_\n*Peminta :* _${s.requester}_\n*Waktu Aktif :* _${s.activeTime}_\n*Waktu Selesai :* _${s.finishTime || "-"}_\n*Keterangan :* _${s.description || "-"}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };

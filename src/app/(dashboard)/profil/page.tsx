@@ -25,11 +25,29 @@ export default function ProfilPage() {
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [resetForm, setResetForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [resetError, setResetError] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [hasDefaultPassword, setHasDefaultPassword] = useState(false);
 
   // Refresh user data on mount + when tab becomes visible (e.g. after approval)
   useEffect(() => {
     refreshUser();
   }, [refreshUser]);
+
+  // Detect default password
+  useEffect(() => {
+    if (user?.password) {
+      // Default passwords: "12345678", "password", "admin123", etc.
+      const defaultPasswords = ["12345678", "password", "admin123", "password123", "1234567890"];
+      const isDefault = defaultPasswords.includes(user.password) || !user.password.startsWith("$2");
+      setHasDefaultPassword(isDefault);
+      if (isDefault) {
+        // Auto-open reset modal on first visit
+        setResetModalOpen(true);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleVisible = () => {
@@ -303,20 +321,63 @@ export default function ProfilPage() {
           </button>
         }
       >
+        {hasDefaultPassword && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+            <div className="flex items-start gap-2">
+              <Lock size={16} className="text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">Wajib untuk keamanan akun Anda</p>
+                <p className="text-xs text-red-700 mt-1">
+                  Password Anda saat ini masih menggunakan password default.
+                  Segera ganti password untuk melindungi akun Anda dari akses yang tidak sah.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <form id="resetForm" onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
           <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Password Saat Ini</label>
+            <div className="relative">
+              <input
+                type={showCurrentPassword ? "text" : "password"}
+                required
+                value={resetForm.currentPassword}
+                onChange={(e) => setResetForm({ ...resetForm, currentPassword: e.target.value })}
+                className="w-full px-3.5 py-2.5 pr-10 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                placeholder="Masukkan password saat ini"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Password Baru</label>
-            <input
-              type="password"
-              required
-              value={resetForm.newPassword}
-              onChange={(e) => setResetForm({ ...resetForm, newPassword: e.target.value })}
-              className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
-                resetForm.newPassword && (passwordValid ? "border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/10" : "border-red-300 focus:border-red-500 focus:ring-red-500/10")
-              }`}
-              placeholder="Minimal 8 karakter"
-              minLength={8}
-            />
+            <div className="relative">
+              <input
+                type={showNewPassword ? "text" : "password"}
+                required
+                value={resetForm.newPassword}
+                onChange={(e) => setResetForm({ ...resetForm, newPassword: e.target.value })}
+                className={`w-full px-3.5 py-2.5 pr-10 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
+                  resetForm.newPassword && (passwordValid ? "border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/10" : "border-red-300 focus:border-red-500 focus:ring-red-500/10")
+                }`}
+                placeholder="Minimal 8 karakter"
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <div className="flex items-center gap-1.5 mt-1.5">
               <div className={`flex items-center gap-1 text-xs transition-all ${
                 resetForm.newPassword.length >= 8 ? "text-emerald-600" : resetForm.newPassword.length > 0 ? "text-red-500" : "text-gray-400"
@@ -339,16 +400,25 @@ export default function ProfilPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Konfirmasi Password Baru</label>
-            <input
-              type="password"
-              required
-              value={resetForm.confirmPassword}
-              onChange={(e) => setResetForm({ ...resetForm, confirmPassword: e.target.value })}
-              className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
-                resetForm.confirmPassword && (resetForm.newPassword === resetForm.confirmPassword ? "border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/10" : "border-red-300 focus:border-red-500 focus:ring-red-500/10")
-              }`}
-              placeholder="Ulangi password baru"
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                required
+                value={resetForm.confirmPassword}
+                onChange={(e) => setResetForm({ ...resetForm, confirmPassword: e.target.value })}
+                className={`w-full px-3.5 py-2.5 pr-10 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
+                  resetForm.confirmPassword && (resetForm.newPassword === resetForm.confirmPassword ? "border-emerald-400 focus:border-emerald-500 focus:ring-emerald-500/10" : "border-red-300 focus:border-red-500 focus:ring-red-500/10")
+                }`}
+                placeholder="Ulangi password baru"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {resetForm.confirmPassword && resetForm.newPassword !== resetForm.confirmPassword && (
               <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
                 <X size={12} /> Password tidak cocok

@@ -115,7 +115,7 @@ function formatDate(iso: string) {
   return `${parseInt(d)} ${MONTHS[parseInt(month) - 1]} ${y} ${hh}:${mm}`;
 }
 
-function emptyForm(user?: { name: string; regu: string }) {
+function emptyForm(user?: { name: string; regu: string }, kegiatan: "Pengaturan Beban" | "Inspeksi" | "Lainnya" = "Pengaturan Beban") {
   return {
     tanggal_jam: getCurrentDatetimeLocal(),
     lokasi: "",
@@ -126,7 +126,7 @@ function emptyForm(user?: { name: string; regu: string }) {
     aktifitas: "",
     area: "",
     pic: user?.name || "",
-    kegiatan: "Pengaturan Beban" as "Pengaturan Beban" | "Inspeksi" | "Lainnya",
+    kegiatan: kegiatan,
     temuan: "",
     tindak_lanjut: "",
     keterangan: "",
@@ -154,22 +154,13 @@ export default function LaporanP2BPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
-  // Filter state — default ke bulan berjalan
-  const fmtLocal = (d: Date) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  };
-  const today = new Date();
-  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-  const [startDate, setStartDate] = useState(fmtLocal(firstDay));
-  const [endDate, setEndDate] = useState(fmtLocal(lastDay));
+  // Filter state — default ke kosong
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [usernameFilter, setUsernameFilter] = useState("");
   const [kegiatanFilter, setKegiatanFilter] = useState("");
   const [showConfirmDownload, setShowConfirmDownload] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'pengaturan' | 'inspeksi' | 'lainnya'>('pengaturan');
 
   // Unique usernames from data (dibatasi sesuai regu untuk Manager/Visitor)
   const usernames = useMemo(() => {
@@ -412,10 +403,10 @@ export default function LaporanP2BPage() {
   };
 
   // ── Open add form ──
-  const openAdd = () => {
+  const openAdd = (kegiatan: "Pengaturan Beban" | "Inspeksi" | "Lainnya" = "Pengaturan Beban") => {
     setEditing(null);
 
-    setForm(emptyForm(user || undefined));
+    setForm(emptyForm(user || undefined, kegiatan));
     setShowForm(true);
   };
 
@@ -426,40 +417,16 @@ export default function LaporanP2BPage() {
       hour: "2-digit", minute: "2-digit",
     });
 
-    const detail =
-      r.kegiatan === "Inspeksi"
-        ? `Lokasi : _${r.lokasi}_
-Aktifitas : _${r.aktifitas || "-"}_
-Kondisi : _${r.kondisi || "-"}_
-Temuan : _${r.temuan || "-"}_
-Tindak Lanjut : _${r.tindak_lanjut || "-"}_
-PIC : _${r.pic}_
-Keterangan : _${r.keterangan || "-"}`
-        : r.kegiatan === "Pengaturan Beban"
-        ? `Lokasi : _${r.lokasi}_
-Level Tegangan : _${r.level_tegangan || "-"}_
-Posisi Power : _${r.posisi_power || "-"}_
-Unit/Area : _${r.area}_
-Unit Pindah : _${r.unit_pindah || "-"}_
-PIC : _${r.pic}_
-Keterangan : _${r.keterangan || "-"}`
-        : `Lokasi : _${r.lokasi}_
-Aktifitas : _${r.aktifitas || "-"}_
-PIC : _${r.pic}_
-Keterangan : _${r.keterangan || "-"}_`;
+    let detail = "";
+    if (r.kegiatan === "Inspeksi") {
+      detail = `*Aktifitas :* _${r.aktifitas || "-"}_\n*Lokasi :* _${r.lokasi}_\n*Kondisi :* _${r.kondisi || "-"}_\n*Temuan :* _${r.temuan || "-"}_\n*Tindak Lanjut :* _${r.tindak_lanjut || "-"}_`;
+    } else if (r.kegiatan === "Pengaturan Beban") {
+      detail = `*Lokasi :* _${r.lokasi}_\n*Level Tegangan :* _${r.level_tegangan || "-"}_\n*Posisi Power :* _${r.posisi_power || "-"}_\n*Unit/Area :* _${r.area}_\n*Unit Pindah :* _${r.unit_pindah || "-"}_`;
+    } else {
+      detail = `*Lokasi :* _${r.lokasi}_\n*Aktifitas :* _${r.aktifitas || "-"}_`;
+    }
 
-    const message = `*Laporan P2B*
-_Seksi Pengaturan Beban_
-
-Kegiatan : _${r.kegiatan}_
-Tanggal Jam : _${formatDate(r.tanggal_jam)}_
-${detail}
-Nama : _${r.nama}_
-Regu : _${r.regu}_
-
-_Source data From : https://distda-pocketnui.web.id_
-_Date Create : ${now}_
-_Dikirim oleh ${user?.name || "-"}_`;
+    const message = `--------------------------------\n*Laporan P2B*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Kegiatan :* _${r.kegiatan}_\n*Tanggal Jam :* _${formatDate(r.tanggal_jam)}_\n${detail}\n*PIC :* _${r.pic}_\n*Keterangan :* _${r.keterangan || "-"}_\n*Nama :* _${r.nama}_\n*Regu :* _${r.regu}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
@@ -739,80 +706,115 @@ _Dikirim oleh ${user?.name || "-"}_`;
       </div>
 
       {/* Filter Tanggal + Username + Kegiatan + PDF */}
-      <div className="flex flex-col gap-3 bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-3">
-        {/* Baris Tanggal */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-            <Calendar size={14} /> Filter Tanggal
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-3">
+        {/* Desktop: 1 baris full width */}
+        <div className="hidden lg:flex items-center gap-2">
+          {/* Tanggal */}
+          <div className="flex items-center gap-2 flex-1">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="flex-1 sm:flex-none px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
             <span className="text-xs text-gray-400">—</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="flex-1 sm:flex-none px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
-            {(startDate || endDate) && (
-              <button
-                onClick={() => { setStartDate(""); setEndDate(""); }}
-                className="px-2.5 py-1.5 text-xs font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors whitespace-nowrap"
-              >
-                Clear
-              </button>
-            )}
           </div>
-        </div>
 
-        {/* Baris User */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-            <User size={14} /> User
-          </div>
+          {/* User */}
           <select
             value={usernameFilter}
             onChange={(e) => setUsernameFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
             <option value="">Semua User</option>
             {usernames.map((name) => (
               <option key={name} value={name}>{name}</option>
             ))}
           </select>
-        </div>
 
-        {/* Baris Kegiatan */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
-            <Activity size={14} /> Kegiatan
-          </div>
+          {/* Kegiatan */}
           <select
             value={kegiatanFilter}
             onChange={(e) => setKegiatanFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
             <option value="">Semua Kegiatan</option>
             {KEGIATAN_OPTIONS.map((o) => (
               <option key={o} value={o}>{o}</option>
             ))}
           </select>
+
+          {/* Download PDF */}
+          <button
+            onClick={() => setShowConfirmDownload(true)}
+            className="ml-auto px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5"
+          >
+            <Download size={14} />
+            <span>Download PDF</span>
+          </button>
         </div>
 
-        {/* Baris Download */}
-        <button
-          onClick={() => setShowConfirmDownload(true)}
-          className="w-full sm:w-auto sm:ml-auto p-2 sm:px-3 sm:py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
-        >
-          <Download size={14} />
-          <span>Download PDF</span>
-        </button>
+        {/* Mobile: 3 baris */}
+        <div className="lg:hidden flex flex-col gap-2">
+          {/* Tanggal (full width) */}
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            />
+            <span className="text-xs text-gray-400">—</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            />
+          </div>
+
+          {/* User + Kegiatan (1 baris) */}
+          <div className="flex items-center gap-2">
+            <select
+              value={usernameFilter}
+              onChange={(e) => setUsernameFilter(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            >
+              <option value="">Semua User</option>
+              {usernames.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+
+            <select
+              value={kegiatanFilter}
+              onChange={(e) => setKegiatanFilter(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            >
+              <option value="">Semua Kegiatan</option>
+              {KEGIATAN_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Download PDF (full width) */}
+          <button
+            onClick={() => setShowConfirmDownload(true)}
+            className="w-full px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Download size={14} />
+            <span>Download PDF</span>
+          </button>
+        </div>
       </div>
+
 
       {/* Chart Pencapaian */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-4">
@@ -823,6 +825,42 @@ _Dikirim oleh ${user?.name || "-"}_`;
         <LineChart labels={chartData.labels} data={chartData.data} label="Jumlah Inputan" />
       </div>
 
+      {/* Segmented Control - Filter Tabel */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-3">
+        <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
+          <button
+            onClick={() => setActiveTab('pengaturan')}
+            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+              activeTab === 'pengaturan'
+                ? 'bg-green-600 text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Pengaturan Beban
+          </button>
+          <button
+            onClick={() => setActiveTab('inspeksi')}
+            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+              activeTab === 'inspeksi'
+                ? 'bg-rose-600 text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Inspeksi
+          </button>
+          <button
+            onClick={() => setActiveTab('lainnya')}
+            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+              activeTab === 'lainnya'
+                ? 'bg-orange-500 text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Lainnya
+          </button>
+        </div>
+      </div>
+
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20 text-gray-400">
@@ -831,43 +869,69 @@ _Dikirim oleh ${user?.name || "-"}_`;
       ) : (
         <div className="space-y-8">
           {/* Tabel Pengaturan Beban */}
-          <DataTable
-            title="Pengaturan Beban"
-            columns={pengaturanBebanColumns}
-            data={pengaturanBebanData}
-            searchPlaceholder="Cari data Pengaturan Beban..."
-            getRowClass={(r) =>
-              r.posisi_power === "BTG" || r.posisi_power === "PLN ke BTG"
-                ? "hover:bg-green-100"
-                : r.posisi_power === "PLN" || r.posisi_power === "BTG ke PLN"
-                ? "hover:bg-yellow-100"
-                : ""
-            }
-            actions={
-              canEdit && (
-                <button
-                  onClick={openAdd}
-                  className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
-                >
-                  <Plus size={16} /> Tambah Data
-                </button>
-              )
-            }
-          />
+          {(activeTab === 'all' || activeTab === 'pengaturan') && (
+            <DataTable
+              title="Pengaturan Beban"
+              columns={pengaturanBebanColumns}
+              data={pengaturanBebanData}
+              searchPlaceholder="Cari data Pengaturan Beban..."
+              getRowClass={(r) =>
+                r.posisi_power === "BTG" || r.posisi_power === "PLN ke BTG"
+                  ? "hover:bg-green-100"
+                  : r.posisi_power === "PLN" || r.posisi_power === "BTG ke PLN"
+                  ? "hover:bg-yellow-100"
+                  : ""
+              }
+              actions={
+                canEdit && (
+                  <button
+                    onClick={() => { setActiveTab('pengaturan'); openAdd('Pengaturan Beban'); }}
+                    className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    <Plus size={16} /> Tambah Data
+                  </button>
+                )
+              }
+            />
+          )}
           {/* Tabel Inspeksi */}
-          <DataTable
-            title="Inspeksi"
-            columns={inspeksiColumns}
-            data={inspeksiData}
-            searchPlaceholder="Cari data Inspeksi..."
-          />
+          {(activeTab === 'all' || activeTab === 'inspeksi') && (
+            <DataTable
+              title="Inspeksi"
+              columns={inspeksiColumns}
+              data={inspeksiData}
+              searchPlaceholder="Cari data Inspeksi..."
+              actions={
+                canEdit && (
+                  <button
+                    onClick={() => { setActiveTab('inspeksi'); openAdd('Inspeksi'); }}
+                    className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    <Plus size={16} /> Tambah Data
+                  </button>
+                )
+              }
+            />
+          )}
           {/* Tabel Lainnya */}
-          <DataTable
-            title="Lainnya"
-            columns={lainnyaColumns}
-            data={lainnyaData}
-            searchPlaceholder="Cari data Lainnya..."
-          />
+          {(activeTab === 'all' || activeTab === 'lainnya') && (
+            <DataTable
+              title="Lainnya"
+              columns={lainnyaColumns}
+              data={lainnyaData}
+              searchPlaceholder="Cari data Lainnya..."
+              actions={
+                canEdit && (
+                  <button
+                    onClick={() => { setActiveTab('lainnya'); openAdd('Lainnya'); }}
+                    className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    <Plus size={16} /> Tambah Data
+                  </button>
+                )
+              }
+            />
+          )}
 
           {/* Rekap Laporan Harian P2B */}
           <DataTable
@@ -922,9 +986,12 @@ _Dikirim oleh ${user?.name || "-"}_`;
               {/* Kegiatan */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Kegiatan *</label>
-                <select value={form.kegiatan} onChange={(e) => setForm({ ...emptyForm(user || undefined), kegiatan: e.target.value as "Pengaturan Beban" | "Inspeksi" | "Lainnya" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
-                  {KEGIATAN_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
+                <input
+                  type="text"
+                  value={form.kegiatan}
+                  readOnly
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
+                />
               </div>
 
               {/* Lokasi */}

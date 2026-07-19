@@ -13,6 +13,7 @@ import { getInitials } from "@/lib/utils";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/laporan-p2b", label: "Laporan P2B", icon: ClipboardList, glow: "green" },
+  { href: "/lap-prod-listrik", label: "Lap. Prod. Listrik", icon: FileText },
   { href: "/pengguna", label: "Pengguna", icon: Users },
   { href: "/database-status", label: "DB Status", icon: Database },
 ];
@@ -24,8 +25,9 @@ const SWITCHGEAR_ITEMS = [
 ];
 
 const EQUIPMENT_ITEMS = [
-  { href: "/equipment-logs", label: "Start-Stop Equipment", icon: Activity },
-  { href: "/laporan-idle-time", label: "Laporan Idle Time", icon: Clock },
+  { href: "/equipment-logs", label: "Start-Stop Peralatan", icon: Activity, glow: "blue" },
+  { href: "/lap-operasi-harian", label: "Lap. Operasi Harian", icon: FileText },
+  { href: "/lap-operasi-bulanan", label: "Lap. Operasi Bulanan", icon: FileText },
 ];
 
 interface Props {
@@ -57,6 +59,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     if (isVisitor && !["/dashboard", "/lototo", "/sg-maintenance", "/laporan-lototo"].includes(item.href)) return false;
     if ((isOperator || isSupervisor) && ["/pengguna", "/database-status"].includes(item.href)) return false;
     if (isManager && ["/pengguna", "/database-status"].includes(item.href)) return false;
+    if (!isAdmin && item.href === "/lap-prod-listrik") return false; // Only Admin can see Lap. Prod. Listrik
     return true;
   });
 
@@ -166,7 +169,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                       key={item.href}
                       href={item.href}
                       onClick={onMobileClose}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative
+                      className={`flex items-center gap-3 pl-6 py-2 rounded-lg text-sm font-medium transition-colors relative
                         ${isSubActive ? "bg-blue-600/20 text-white" : "text-white/60 hover:text-white hover:bg-white/5"}`}
                     >
                       <item.icon size={16} className="flex-shrink-0" />
@@ -203,8 +206,8 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             )}
           </div>
         )}
-        {/* Equipment Monitoring (Admin Only) */}
-        {EQUIPMENT_ITEMS.length > 0 && isAdmin && (
+        {/* Equipment Monitoring (All roles except Visitor) */}
+        {EQUIPMENT_ITEMS.length > 0 && !isVisitor && (
           <div>
             <button
               onClick={() => !collapsed && setEquipmentOpen(!equipmentOpen)}
@@ -214,7 +217,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               <Clock size={18} className="flex-shrink-0" />
               {!collapsed && (
                 <>
-                  <span className="whitespace-nowrap">Equipment Monitoring</span>
+                  <span className="whitespace-nowrap">Monitoring Peralatan</span>
                   <ChevronDown size={16} className={`ml-auto transition-transform ${shouldShowEquipment ? "rotate-180" : ""}`} />
                 </>
               )}
@@ -231,11 +234,16 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                       key={item.href}
                       href={item.href}
                       onClick={onMobileClose}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors relative
+                      className={`flex items-center gap-3 pl-6 py-2 rounded-lg text-sm font-medium transition-colors relative
                         ${isSubActive ? "bg-blue-600/20 text-white" : "text-white/60 hover:text-white hover:bg-white/5"}`}
                     >
                       <item.icon size={16} className="flex-shrink-0" />
-                      <span className="whitespace-nowrap">{item.label}</span>
+                      <span className={`whitespace-nowrap ${
+                        item.glow === "red" ? "text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.7)] font-bold" :
+                        item.glow === "green" ? "text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.7)] font-bold" :
+                        item.glow === "blue" ? "text-blue-400 drop-shadow-[0_0_6px_rgba(96,165,250,0.7)] font-bold" :
+                        ""
+                      }`}>{item.label}</span>
                       {isSubActive && (
                         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-blue-500 rounded-r-md" />
                       )}
@@ -247,7 +255,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             {collapsed && (
               <div className="relative group">
                 <div className="hidden group-hover:block absolute left-full top-1/2 -translate-y-1/2 ml-2 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-50 shadow-lg">
-                  <div className="font-semibold mb-1">Equipment Monitoring</div>
+                  <div className="font-semibold mb-1">Monitoring Peralatan</div>
                   {EQUIPMENT_ITEMS.map((item) => (
                     <div key={item.href} className="flex items-center gap-2 py-0.5">
                       <item.icon size={12} />

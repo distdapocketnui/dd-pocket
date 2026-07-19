@@ -84,6 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     switch (table) {
       case "switch_gears": return "Switch Gear";
       case "users": return "User";
+      case "equipment_logs": return "Equipment Log";
       default: return table;
     }
   };
@@ -199,6 +200,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               }`}>{a.new_data.status}</span>}
                               {a.new_data.location && <p className="text-xs text-gray-400">Lokasi: {a.new_data.location}</p>}
                               {a.new_data.unit && <p className="text-xs text-gray-400">Unit: {a.new_data.unit}</p>}
+                              {a.table_name === "equipment_logs" && (
+                                <>
+                                  {a.new_data.equipment_name && (
+                                    <p className="text-xs text-gray-400">Equipment: {a.new_data.equipment_name}</p>
+                                  )}
+                                  {a.new_data.event_type && (
+                                    <span className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                      a.new_data.event_type === "START" ? "bg-green-50/90 text-green-700" : "bg-red-50/90 text-red-700"
+                                    }`}>{a.new_data.event_type}</span>
+                                  )}
+                                  {a.action_type === "edit" && a.old_data?.event_type && a.new_data?.event_type && a.old_data.event_type !== a.new_data.event_type && (
+                                    <p className="text-xs text-gray-500">
+                                      {a.old_data.event_type} → {a.new_data.event_type}
+                                    </p>
+                                  )}
+                                </>
+                              )}
                             </div>
                           )}
                           {a.action_type === "delete" && a.old_data && (

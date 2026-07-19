@@ -240,6 +240,41 @@ export interface Database {
         };
         Relationships: [];
       };
+      equipment_logs: {
+        Row: {
+          id: number;
+          equipment_id: number;
+          event_type: string;
+          timestamp: string;
+          reason: string | null;
+          shift: string | null;
+          update_beban_pln: number | null;
+          update_beban_btg: number | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          equipment_id: number;
+          event_type: string;
+          timestamp: string;
+          reason?: string | null;
+          shift?: string | null;
+          update_beban_pln?: number | null;
+          update_beban_btg?: number | null;
+          created_by?: string;
+        };
+        Update: {
+          equipment_id?: number;
+          event_type?: string;
+          timestamp?: string;
+          reason?: string | null;
+          shift?: string | null;
+          update_beban_pln?: number | null;
+          update_beban_btg?: number | null;
+          created_by?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};

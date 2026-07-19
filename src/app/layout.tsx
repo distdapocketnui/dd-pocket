@@ -7,8 +7,8 @@ import PwaSetup from "@/components/PwaSetup";
 import PasswordResetModal from "@/components/PasswordResetModal";
 
 export const metadata: Metadata = {
-  title: "Distribusi Daya — Monitoring LOTOTO",
-  description: "Monitoring pengamanan switch gear dan status LOTOTO",
+  title: "Dista Pocket",
+  description: "Laporan Seksi Pengaturan Beban",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
+    icon: [{ url: "/logo_NUI.png", sizes: "any", type: "image/png" }],
     apple: [
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
     ],

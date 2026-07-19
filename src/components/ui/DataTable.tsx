@@ -116,11 +116,11 @@ export default function DataTable<T>({
       <div className="overflow-x-auto" style={maxHeight ? { maxHeight, overflowY: "auto" } : undefined}>
         <table className="w-full table-auto">
           <thead>
-            <tr className="bg-gray-100 border-b border-gray-200">
+            <tr className="bg-gray-200 border-b-2 border-gray-400">
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-3 sm:px-4 lg:px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap
+                  className={`px-3 sm:px-4 lg:px-5 py-3 text-left text-xs font-bold text-gray-800 uppercase tracking-wider whitespace-nowrap
                     ${col.hideOnMobile ? "hidden lg:table-cell" : ""}
                     ${col.className || ""}`}
                 >

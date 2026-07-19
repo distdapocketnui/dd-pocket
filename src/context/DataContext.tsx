@@ -475,6 +475,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             if (value !== undefined) updatePayload[key] = value;
           }
           await supabase.from("users").update(updatePayload).eq("id", approval.record_id);
+        } else if (tableName === "equipment_logs") {
+          // Equipment logs table — map camelCase to snake_case, exclude non-DB fields
+          const fieldMap: Record<string, string> = {
+            equipment_id: "equipment_id",
+            event_type: "event_type",
+            timestamp: "timestamp",
+            reason: "reason",
+            shift: "shift",
+            update_beban_pln: "update_beban_pln",
+            update_beban_btg: "update_beban_btg",
+            created_by: "created_by",
+          };
+          for (const [camel, snake] of Object.entries(fieldMap)) {
+            if (approval.new_data[camel] !== undefined) {
+              updatePayload[snake] = approval.new_data[camel];
+            }
+          }
+          await supabase.from("equipment_logs").update(updatePayload).eq("id", approval.record_id);
         } else {
           // Switch gears table — map camelCase to snake_case
           const fieldMap: Record<string, string> = {
@@ -492,7 +510,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           await supabase.from("switch_gears").update(updatePayload).eq("id", approval.record_id);
         }
       } else if (approval.action_type === "delete") {
-        const tableName = approval.table_name === "users" ? "users" : "switch_gears";
+        const tableName = approval.table_name;
 
         // Hapus file gambar dari storage dulu jika tabel switch_gears
         if (tableName === "switch_gears") {
@@ -520,14 +538,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        await supabase.from(tableName as "users" | "switch_gears").delete().eq("id", approval.record_id);
+        const targetTable = tableName === "users" ? "users" : tableName === "equipment_logs" ? "equipment_logs" : "switch_gears";
+        await supabase.from(targetTable as "users" | "switch_gears" | "equipment_logs").delete().eq("id", approval.record_id);
       } else if (approval.action_type === "create" && approval.new_data) {
         console.log(">>> APPROVE CREATE:", { table: approval.table_name, new_data: approval.new_data });
-        const tableName = approval.table_name === "users" ? "users" : "switch_gears";
+        const tableName = approval.table_name;
 
         if (tableName === "users") {
           const { error: insertErr } = await supabase.from("users").insert(approval.new_data);
           if (insertErr) throw insertErr;
+        } else if (tableName === "equipment_logs") {
+          // Equipment logs table — map camelCase to snake_case, exclude non-DB fields
+          const fieldMap: Record<string, string> = {
+            equipment_id: "equipment_id",
+            event_type: "event_type",
+            timestamp: "timestamp",
+            reason: "reason",
+            shift: "shift",
+            update_beban_pln: "update_beban_pln",
+            update_beban_btg: "update_beban_btg",
+            created_by: "created_by",
+          };
+          const insertPayload: Record<string, any> = {};
+          for (const [camel, snake] of Object.entries(fieldMap)) {
+            if (approval.new_data[camel] !== undefined) {
+              insertPayload[snake] = approval.new_data[camel];
+            }
+          }
+          const { error: insertErr } = await supabase
+            .from("equipment_logs")
+            .insert(insertPayload);
+          if (insertErr) throw insertErr;
+          console.log(">>> INSERT EQUIPMENT_LOG BERHASIL");
         } else {
           // Switch gears table — map camelCase to snake_case
           const fieldMap: Record<string, string> = {

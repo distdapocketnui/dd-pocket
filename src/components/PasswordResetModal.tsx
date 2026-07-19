@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { hashPassword } from "@/lib/auth";
-import { X, Lock, AlertTriangle, CheckCircle } from "lucide-react";
+import { X, Lock, AlertTriangle, CheckCircle, Eye, EyeOff } from "lucide-react";
 
 export default function PasswordResetModal() {
   const { user, showPasswordResetModal, setShowPasswordResetModal } = useAuth();
@@ -16,6 +16,9 @@ export default function PasswordResetModal() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Hanya render modal jika showPasswordResetModal true
   if (!showPasswordResetModal || !user) return null;
@@ -162,31 +165,49 @@ export default function PasswordResetModal() {
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                   Password Saat Ini
                 </label>
-                <input
-                  type="password"
-                  value={form.currentPassword}
-                  onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-amber-500 focus:bg-white outline-none transition-all"
-                  placeholder="Masukkan password saat ini"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={form.currentPassword}
+                    onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
+                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-amber-500 focus:bg-white outline-none transition-all"
+                    placeholder="Masukkan password saat ini"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                   Password Baru
                 </label>
-                <input
-                  type="password"
-                  value={form.newPassword}
-                  onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
-                  className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white outline-none transition-all ${
-                    form.newPassword && (form.newPassword.length >= 8 ? "border-emerald-400 focus:border-emerald-500" : "border-red-300 focus:border-red-500")
-                  }`}
-                  placeholder="Minimal 8 karakter"
-                  minLength={8}
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={form.newPassword}
+                    onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+                    className={`w-full px-4 py-3 pr-10 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white outline-none transition-all ${
+                      form.newPassword && (form.newPassword.length >= 8 ? "border-emerald-400 focus:border-emerald-500" : "border-red-300 focus:border-red-500")
+                    }`}
+                    placeholder="Minimal 8 karakter"
+                    minLength={8}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 {form.newPassword.length > 0 && (
                   <div className="flex items-center gap-2 mt-2">
                     <div className={`flex items-center gap-1 text-xs ${
@@ -207,14 +228,23 @@ export default function PasswordResetModal() {
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                   Konfirmasi Password Baru
                 </label>
-                <input
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-amber-500 focus:bg-white outline-none transition-all"
-                  placeholder="Ulangi password baru"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={form.confirmPassword}
+                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                    className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-amber-500 focus:bg-white outline-none transition-all"
+                    placeholder="Ulangi password baru"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <button

@@ -151,7 +151,7 @@ export function downloadPdf({ title, period, columns, rows, filename, onCellPars
   doc.save(`${filename}.pdf`);
 }
 
-/** Export multi-section data table to A4 landscape PDF with multiple named sections */
+/** Export multi-section data table to A4 landscape PDF with multiple named sections (2 tables per page) */
 export function downloadPdfMulti({ title, period, sections, filename }: PdfMultiData) {
   const doc = new jsPDF("l", "mm", "a4");
   const pageW = 297;
@@ -171,6 +171,7 @@ export function downloadPdfMulti({ title, period, sections, filename }: PdfMulti
   });
 
   let pageCount = 0;
+  const tablesPerPage = 2;
 
   // ===== Header on each page =====
   doc.setFont("helvetica", "bold");
@@ -186,9 +187,30 @@ export function downloadPdfMulti({ title, period, sections, filename }: PdfMulti
   doc.line(marginLeft, 40, pageW - marginRight, 40);
 
   let startY = 47;
+  let tablesOnCurrentPage = 0;
 
   // ===== Draw each section =====
   sections.forEach((section, idx) => {
+    // Check if we need to start a new page (2 tables per page)
+    if (tablesOnCurrentPage >= tablesPerPage && idx > 0) {
+      doc.addPage();
+      tablesOnCurrentPage = 0;
+      startY = 47;
+      
+      // Re-draw header on new page
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(title, marginLeft, 22);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+      doc.text("Unit Distribusi Daya", marginLeft, 30);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.text(`Periode: ${period}`, marginLeft, 37);
+      doc.setDrawColor(200);
+      doc.line(marginLeft, 40, pageW - marginRight, 40);
+    }
+
     // Section title
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
@@ -218,6 +240,7 @@ export function downloadPdfMulti({ title, period, sections, filename }: PdfMulti
     });
 
     startY = (doc as any).lastAutoTable?.finalY + 12 || startY + 40;
+    tablesOnCurrentPage++;
   });
 
   // ===== Signature block =====
