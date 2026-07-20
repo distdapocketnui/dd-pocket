@@ -19,12 +19,16 @@ export interface Equipment {
   category: string | null;
   is_active: boolean;
   created_at: string;
+  main1: string | null;
+  main2: string | null;
+  main3: string | null;
+  posisi_power: string | null;
 }
 
 export interface EquipmentLog {
   id: number;
   equipment_id: number;
-  event_type: 'START' | 'STOP';
+  event_type: 'START' | 'STOP' | 'HEATING_UP';
   timestamp: string;
   reason: string | null;
   shift: string | null;
@@ -32,6 +36,10 @@ export interface EquipmentLog {
   update_beban_btg: number | null;
   created_by: string;
   created_at: string;
+  main1: string | null;
+  main2: string | null;
+  main3: string | null;
+  posisi_power: string | null;
 }
 
 export interface EquipmentLogWithDetails extends EquipmentLog {
@@ -51,7 +59,7 @@ export interface IdleTimeResult {
 
 // Equipment API
 export async function getEquipment(activeOnly = true): Promise<Equipment[]> {
-  let url = `${SUPABASE_URL}/rest/v1/equipment?order=unit,name`;
+  let url = `${SUPABASE_URL}/rest/v1/equipment?select=id,name,unit,category,is_active,created_at,main1,main2,main3&order=unit,name`;
   if (activeOnly) {
     url += '&is_active=eq.true';
   }
@@ -66,7 +74,7 @@ export async function getEquipment(activeOnly = true): Promise<Equipment[]> {
 }
 
 export async function getEquipmentLogs(): Promise<EquipmentLogWithDetails[]> {
-  const url = `${SUPABASE_URL}/rest/v1/equipment_logs?select=*,equipment!inner(id,name,unit)&order=timestamp.desc`;
+  const url = `${SUPABASE_URL}/rest/v1/equipment_logs?select=*,equipment!inner(id,name,unit),main1,main2,main3&order=timestamp.desc`;
   const response = await fetch(url, { headers });
   if (!response.ok) throw new Error('Failed to fetch equipment logs');
   const data = await response.json();
@@ -86,7 +94,10 @@ export async function createEquipmentLog(log: Omit<EquipmentLog, 'id' | 'created
     headers,
     body: JSON.stringify(log),
   });
-  if (!response.ok) throw new Error('Failed to create equipment log');
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create equipment log: ${response.status} - ${errorText}`);
+  }
   return response.json();
 }
 

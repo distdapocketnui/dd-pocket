@@ -46,11 +46,11 @@ function UnitPindahDropdown({ unitPengaturan, value, onChange }: { unitPengatura
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto border border-gray-200 rounded-xl bg-white shadow-lg p-1.5 space-y-0.5">
             {unitPengaturan.map((u) => {
-              const checked = selected.includes(u.nama);
+              const checked = selected.includes(u.name);
               return (
                 <label key={u.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 cursor-pointer text-sm">
-                  <input type="checkbox" checked={checked} onChange={() => toggle(u.nama)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                  {u.nama}
+                  <input type="checkbox" checked={checked} onChange={() => toggle(u.name)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  {u.name}
                 </label>
               );
             })}
@@ -182,7 +182,7 @@ export default function LaporanP2BPage() {
   useEffect(() => {
     const fetchUnitPengaturan = async () => {
       const supabase = getSupabaseClient();
-      const { data } = await supabase.from("unit_pengaturan").select("*").order("nama");
+      const { data } = await supabase.from("equipment").select("*").order("name");
       if (data) setUnitPengaturan(data);
     };
     fetchUnitPengaturan();

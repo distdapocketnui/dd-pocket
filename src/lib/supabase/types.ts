@@ -240,6 +240,38 @@ export interface Database {
         };
         Relationships: [];
       };
+      equipment: {
+        Row: {
+          id: number;
+          name: string;
+          unit: string;
+          category?: string;
+          is_active?: boolean;
+          main1?: string | null;
+          main2?: string | null;
+          main3?: string | null;
+          created_at: string;
+        };
+        Insert: {
+          name: string;
+          unit: string;
+          category?: string;
+          is_active?: boolean;
+          main1?: string | null;
+          main2?: string | null;
+          main3?: string | null;
+        };
+        Update: {
+          name?: string;
+          unit?: string;
+          category?: string;
+          is_active?: boolean;
+          main1?: string | null;
+          main2?: string | null;
+          main3?: string | null;
+        };
+        Relationships: [];
+      };
       equipment_logs: {
         Row: {
           id: number;

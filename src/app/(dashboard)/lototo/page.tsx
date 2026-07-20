@@ -29,7 +29,7 @@ function getImages(item: SwitchGear): string[] {
   }
 }
 
-function PicDropdown({ users, value, onChange }: { users: { id: number; name: string; regu?: string }[]; value: string; onChange: (v: string) => void }) {
+function PicDropdown({ users, value, onChange, className }: { users: { id: number; name: string; regu?: string }[]; value: string; onChange: (v: string) => void; className?: string }) {
   const [open, setOpen] = useState(false);
   const selected = value ? value.split(", ").filter(Boolean) : [];
   const filteredUsers = users.filter(u => u.regu); // Hanya tampilkan user yang memiliki regu
@@ -44,7 +44,7 @@ function PicDropdown({ users, value, onChange }: { users: { id: number; name: st
   return (
     <div className="relative">
       <button type="button" onClick={() => setOpen(!open)}
-        className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm text-left focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+        className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm text-left outline-none transition-all ${className || "border-gray-200 bg-gray-50 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"}`}
       >
         {selected.length > 0
           ? <span className="text-gray-900">{selected.length} PIC dipilih</span>
@@ -98,11 +98,11 @@ export default function LototoPage() {
   const [form, setForm] = useState<{
     name: string; location: string; unit: string; status: SGStatus;
     pic: string; requester: string; notifNo: string; lototoNo: string;
-    description: string; image: string; images: string[];
+    description: string; alasan_stop: string; image: string; images: string[];
     activeTime: string; finishTime: string;
   }>({
     name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
-    pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
+    pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", alasan_stop: "", image: "", images: [],
     activeTime: "", finishTime: "",
   });
 
@@ -152,7 +152,7 @@ export default function LototoPage() {
     setEditId(null);
     setForm({
       name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
-      pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
+      pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", alasan_stop: "", image: "", images: [],
       activeTime: getCurrentDatetimeLocal(), finishTime: "",
     });
     setModalOpen(true);
@@ -163,7 +163,7 @@ export default function LototoPage() {
     setForm({
       name: sg.name, location: sg.location, unit: sg.unit, status: sg.status,
       pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
-      description: sg.description, image: sg.image || "",
+      description: sg.description, alasan_stop: sg.alasan_stop || "", image: sg.image || "",
       images: getImages(sg),
       activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
       finishTime: sg.status === "Selesai" ? (toDatetimeLocal(sg.finishTime) || getCurrentDatetimeLocal()) : "",
@@ -209,6 +209,7 @@ export default function LototoPage() {
       ...form,
       image: form.images[0] || "",
       images: form.images,
+      alasan_stop: form.alasan_stop,
       activeTime: toIndonesianDate(form.activeTime) || form.activeTime,
       finishTime: form.status === "Selesai" ? (toIndonesianDate(form.finishTime) || form.finishTime) : "",
     };
@@ -258,6 +259,7 @@ export default function LototoPage() {
     { key: "requester", header: "Peminta", render: (s: SwitchGear) => s.requester },
     { key: "activeTime", header: "Waktu Aktif", render: (s: SwitchGear) => s.activeTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
     { key: "finishTime", header: "Waktu Selesai", render: (s: SwitchGear) => s.finishTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
+    { key: "alasan_stop", header: "Alasan Stop", render: (s: SwitchGear) => s.alasan_stop || <span className="text-xs text-gray-300">—</span> },
     {
       key: "image", header: "Gambar", render: (s: SwitchGear) => {
         const imgs = getImages(s);
@@ -362,17 +364,17 @@ export default function LototoPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Switch Gear</label>
-              <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="SG-MV-01" />
+              <input type="text" required value={form.name} disabled={!!editId} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`} placeholder="SG-MV-01" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Lokasi</label>
-              <input type="text" required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="Area Transformer" />
+              <input type="text" required value={form.location} disabled={!!editId} onChange={(e) => setForm({ ...form, location: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`} placeholder="Area Transformer" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Unit</label>
-              <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`}>
+              <select value={form.unit} disabled={!!editId} onChange={(e) => setForm({ ...form, unit: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`}>
                 <option>Tonasa 2/3</option><option>Tonasa 4</option><option>Tonasa 5</option><option>SG Lainnya</option>
               </select>
             </div>
@@ -396,8 +398,10 @@ export default function LototoPage() {
               type="datetime-local"
               required
               value={form.activeTime}
+              disabled={!!editId}
+              readOnly={!!editId}
               onChange={(e) => setForm({ ...form, activeTime: e.target.value })}
-              className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`}
+              className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`}
             />
           </div>
 
@@ -418,7 +422,7 @@ export default function LototoPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">PIC</label>
-              <PicDropdown users={picUsers} value={form.pic} onChange={(v) => setForm({ ...form, pic: v })} />
+              <PicDropdown users={picUsers} value={form.pic} onChange={(v) => setForm({ ...form, pic: v })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm text-left outline-none transition-all ${softBorderClass}`} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Peminta</label>
@@ -434,6 +438,10 @@ export default function LototoPage() {
               <label className="block text-xs font-semibold text-gray-600 mb-1">No. Lototo</label>
               <input type="text" value={form.lototoNo} onChange={(e) => setForm({ ...form, lototoNo: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="LT-2026-001" />
             </div>
+          </div>
+          <div className="disabled:opacity-60 disabled:bg-gray-50">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop</label>
+            <textarea value={form.alasan_stop} disabled={!!editId} onChange={(e) => setForm({ ...form, alasan_stop: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500 min-h-[70px]`} placeholder="Alasan menghentikan pekerjaan..." />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>

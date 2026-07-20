@@ -57,6 +57,7 @@ function mapSG(row: any): SwitchGear {
     image: row.image || "",
     images: row.images || "[]",
     description: row.description || "",
+    alasan_stop: row.alasan_stop || "",
   };
 }
 
@@ -177,23 +178,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const addSwitchGear = useCallback(async (data: Omit<SwitchGear, "id">) => {
     try {
       const supabase = getSupabaseClient();
+      const insertPayload: Record<string, any> = {
+        name: data.name,
+        location: data.location,
+        unit: data.unit,
+        status: data.status,
+        pic: data.pic,
+        requester: data.requester,
+        active_time: data.activeTime,
+        finish_time: data.finishTime,
+        notif_no: data.notifNo,
+        lototo_no: data.lototoNo,
+        image: data.image,
+        images: data.images,
+        description: data.description,
+        alasan_stop: data.alasan_stop,
+      };
       const { data: inserted, error } = await supabase
         .from("switch_gears")
-        .insert({
-          name: data.name,
-          location: data.location,
-          unit: data.unit,
-          status: data.status,
-          pic: data.pic,
-          requester: data.requester,
-          active_time: data.activeTime,
-          finish_time: data.finishTime,
-          notif_no: data.notifNo,
-          lototo_no: data.lototoNo,
-          image: data.image,
-          images: data.images,
-          description: data.description,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
@@ -209,6 +212,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   }, [addLog]);
+
 
   const updateSwitchGear = useCallback(async (id: number, data: Partial<SwitchGear>) => {
     try {
@@ -227,6 +231,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (data.image !== undefined) updateData.image = data.image;
       if (data.images !== undefined) updateData.images = data.images;
       if (data.description !== undefined) updateData.description = data.description;
+      if (data.alasan_stop !== undefined) updateData.alasan_stop = data.alasan_stop;
 
       const { data: updated, error } = await supabase
         .from("switch_gears")

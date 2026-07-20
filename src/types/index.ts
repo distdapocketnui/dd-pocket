@@ -4,7 +4,7 @@ export type SGStatus = "Aktif Lototo" | "Maintenance" | "Selesai";
 
 export interface UnitPengaturan {
   id: number;
-  nama: string;
+  name: string;
 }
 export type UserRole = "Admin" | "Manager" | "Operator" | "Supervisor" | "Visitor";
 export type UserStatus = "Aktif" | "Nonaktif";
@@ -26,6 +26,7 @@ export interface SwitchGear {
   image: string;
   images: string;
   description: string;
+  alasan_stop: string;
 }
 
 export interface User {

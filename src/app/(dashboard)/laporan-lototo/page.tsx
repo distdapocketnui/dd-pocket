@@ -335,7 +335,7 @@ export default function LaporanHarianPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">PIC</label>
-                <input type="text" value={editForm.pic || ""} onChange={(e) => setEditForm({ ...editForm, pic: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                <input type="text" value={editForm.pic || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -344,7 +344,7 @@ export default function LaporanHarianPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">No. Lototo</label>
-                  <p className="w-full px-3.5 py-2.5 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm text-gray-500">{editForm.lototoNo || "-"}</p>
+                  <input type="text" value={editForm.lototoNo || ""} onChange={(e) => setEditForm({ ...editForm, lototoNo: e.target.value })} className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
                 </div>
               </div>
               <div>
@@ -361,23 +361,23 @@ export default function LaporanHarianPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Switch Gear</label>
-                  <input type="text" value={editForm.name || ""} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                  <input type="text" value={editForm.name || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Lokasi</label>
-                  <input type="text" value={editForm.location || ""} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                  <input type="text" value={editForm.location || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Unit</label>
-                  <select value={editForm.unit || ""} onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
+                  <select value={editForm.unit || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500">
                     {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
-                  <select value={editForm.status || ""} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as SGStatus })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
+                  <select value={editForm.status || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500">
                     <option value="Aktif Lototo">Aktif Lototo</option>
                     <option value="Maintenance">Maintenance</option>
                     <option value="Selesai">Selesai</option>
@@ -386,7 +386,7 @@ export default function LaporanHarianPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">PIC</label>
-                <input type="text" value={editForm.pic || ""} onChange={(e) => setEditForm({ ...editForm, pic: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                <input type="text" value={editForm.pic || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -400,7 +400,7 @@ export default function LaporanHarianPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Peminta</label>
-                <input type="text" value={editForm.requester || ""} onChange={(e) => setEditForm({ ...editForm, requester: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                <input type="text" value={editForm.requester || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>

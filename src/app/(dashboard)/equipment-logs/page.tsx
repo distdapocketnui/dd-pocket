@@ -39,12 +39,16 @@ export default function EquipmentLogsPage() {
   const [endDate, setEndDate] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("Semua");
   const [selectedEquipment, setSelectedEquipment] = useState<number | "">("");
-  const [eventType, setEventType] = useState<"START" | "STOP" | "">("");
+  const [eventType, setEventType] = useState<"START" | "STOP" | "HEATING_UP" | "">("");
   const [timestamp, setTimestamp] = useState(getCurrentDatetimeLocal());
   const [reason, setReason] = useState("");
   const [shift, setShift] = useState("Dayshift");
   const [updateBebanPln, setUpdateBebanPln] = useState("");
   const [updateBebanBtg, setUpdateBebanBtg] = useState("");
+  const [main1Checked, setMain1Checked] = useState(false);
+  const [main2Checked, setMain2Checked] = useState(false);
+  const [main3Checked, setMain3Checked] = useState(false);
+  const [posisiPower, setPosisiPower] = useState<"BTG" | "PLN" | "">("");
   const [confirmAction, setConfirmAction] = useState<Equipment | null>(null);
   const [showQuickForm, setShowQuickForm] = useState(false);
   const [equipmentName, setEquipmentName] = useState("");
@@ -136,13 +140,61 @@ export default function EquipmentLogsPage() {
   };
 
   // Get last event for equipment
-  const getLastEvent = (equipmentId: number): "START" | "STOP" | null => {
+  const getLastEvent = (equipmentId: number): "START" | "STOP" | "HEATING_UP" | null => {
     const equipmentLogs = logs
       .filter(log => log.equipment_id === equipmentId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
-    return equipmentLogs.length > 0 ? equipmentLogs[0].event_type as "START" | "STOP" : null;
+    return equipmentLogs.length > 0 ? equipmentLogs[0].event_type as "START" | "STOP" | "HEATING_UP" : null;
   };
+
+  // Determine event type based on checked mains
+  const getEventTypeFromChecklist = (availableMains: number = 3): "START" | "STOP" | "HEATING_UP" => {
+    const checks = [main1Checked, main2Checked, main3Checked].filter(Boolean).length;
+    if (checks === 0) return "STOP";
+    if (checks === availableMains) return "START";
+    return "HEATING_UP";
+  };
+
+  // Determine event type based on new checklist values (to handle async state updates)
+  const getEventTypeFromChecklistForNewValue = (availableMains: number, newCount: number): "START" | "STOP" | "HEATING_UP" => {
+    if (newCount === 0) return "STOP";
+    if (newCount === availableMains) return "START";
+    return "HEATING_UP";
+  };
+
+
+  // Initialize checklist from last event log
+  const initializeChecklistFromLastEvent = (equipmentId: number) => {
+    const equipmentLogs = logs
+      .filter(log => log.equipment_id === equipmentId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    const lastLog = equipmentLogs[0];
+    if (!lastLog) {
+      setMain1Checked(false);
+      setMain2Checked(false);
+      setMain3Checked(false);
+      return;
+    }
+    
+    if (lastLog.event_type === "START") {
+      setMain1Checked(true);
+      setMain2Checked(true);
+      setMain3Checked(true);
+    } else if (lastLog.event_type === "STOP") {
+      setMain1Checked(false);
+      setMain2Checked(false);
+      setMain3Checked(false);
+    } else if (lastLog.event_type === "HEATING_UP") {
+      setMain1Checked(!!lastLog.main1);
+      setMain2Checked(!!lastLog.main2);
+      setMain3Checked(!!lastLog.main3);
+    }
+    setPosisiPower((lastLog.posisi_power as "BTG" | "PLN" | "") || "");
+  };
+
+
 
   // Handle save (add/edit)
   const handleSave = async () => {
@@ -159,27 +211,38 @@ export default function EquipmentLogsPage() {
       return;
     }
 
-    // Validasi
-    if (eventType === "START" && !canStartEquipment(selectedEquipment)) {
-      alert("Equipment harus di-STOP terlebih dahulu sebelum di-START");
-      return;
-    }
-    if (eventType === "STOP" && !canStopEquipment(selectedEquipment)) {
-      alert("Equipment harus di-START terlebih dahulu sebelum di-STOP");
-      return;
-    }
+    // Auto resolve event type from checklist
+    const eqForSave = equipmentList.find(e => e.id === selectedEquipment);
+    const availableMains = eqForSave ? [eqForSave.main1, eqForSave.main2, eqForSave.main3].filter(Boolean).length : 3;
+    const resolvedEventType = getEventTypeFromChecklist(availableMains);
+    setEventType(resolvedEventType);
 
+    // Validasi (hanya untuk tambah log baru, bukan edit)
+    if (!editing) {
+      if (resolvedEventType === "START" && !canStartEquipment(selectedEquipment)) {
+        alert("Equipment harus di-STOP terlebih dahulu sebelum di-START");
+        return;
+      }
+      if (resolvedEventType === "STOP" && !canStopEquipment(selectedEquipment)) {
+        alert("Equipment harus di-START terlebih dahulu sebelum di-STOP");
+        return;
+      }
+    }
     setSaving(true);
     try {
       const payload = {
         equipment_id: selectedEquipment,
-        event_type: eventType as "START" | "STOP",
+        event_type: resolvedEventType,
         timestamp: timestamp,
         reason: eventType === "STOP" ? reason.trim() : null,
         shift: shift,
         update_beban_pln: updateBebanPln ? parseFloat(updateBebanPln) : null,
         update_beban_btg: updateBebanBtg ? parseFloat(updateBebanBtg) : null,
         created_by: user?.name || "",
+        posisi_power: posisiPower || null,
+        main1: main1Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main1 || "") : null,
+        main2: main2Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main2 || "") : null,
+        main3: main3Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main3 || "") : null,
       };
 
       // Semua role langsung simpan untuk tambah/edit
@@ -241,6 +304,10 @@ export default function EquipmentLogsPage() {
     setShift("Dayshift");
     setUpdateBebanPln("");
     setUpdateBebanBtg("");
+    setMain1Checked(false);
+    setMain2Checked(false);
+    setMain3Checked(false);
+    setPosisiPower("");
     setEditing(null);
   };
 
@@ -254,6 +321,9 @@ export default function EquipmentLogsPage() {
     setShift("Dayshift");
     setUpdateBebanPln("");
     setUpdateBebanBtg("");
+    setMain1Checked(false);
+    setMain2Checked(false);
+    setMain3Checked(false);
     setShowQuickForm(false);
   };
 
@@ -271,27 +341,40 @@ export default function EquipmentLogsPage() {
       return;
     }
 
+    const eq = equipmentList.find(e => e.id === selectedEquipment);
+    if (eq) {
+      setMain1Checked(!!eq.main1);
+      setMain2Checked(!!eq.main2);
+      setMain3Checked(!!eq.main3);
+    }
+    const availableMains = eq ? [eq.main1, eq.main2, eq.main3].filter(Boolean).length : 3;
+    const resolvedEventType = getEventTypeFromChecklist(availableMains);
+    setEventType(resolvedEventType);
+
     // Validasi
-    if (eventType === "START" && !canStartEquipment(selectedEquipment)) {
+    if (resolvedEventType === "START" && !canStartEquipment(selectedEquipment)) {
       alert("Equipment harus di-STOP terlebih dahulu sebelum di-START");
       return;
     }
-    if (eventType === "STOP" && !canStopEquipment(selectedEquipment)) {
+    if (resolvedEventType === "STOP" && !canStopEquipment(selectedEquipment)) {
       alert("Equipment harus di-START terlebih dahulu sebelum di-STOP");
       return;
     }
-
     setQuickSaving(true);
     try {
       const payload = {
         equipment_id: selectedEquipment,
-        event_type: eventType as "START" | "STOP",
+        event_type: resolvedEventType,
         timestamp: timestamp,
         reason: eventType === "STOP" ? reason.trim() : null,
         shift: shift,
         update_beban_pln: updateBebanPln ? parseFloat(updateBebanPln) : null,
         update_beban_btg: updateBebanBtg ? parseFloat(updateBebanBtg) : null,
         created_by: user?.name || "",
+        posisi_power: posisiPower || null,
+        main1: main1Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main1 || "") : null,
+        main2: main2Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main2 || "") : null,
+        main3: main3Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main3 || "") : null,
       };
 
       // Semua role langsung simpan untuk quick form
@@ -338,12 +421,18 @@ export default function EquipmentLogsPage() {
     setEditing(log);
     setSelectedEquipment(log.equipment_id);
     setEquipmentLocked(true);
-    setEventType(log.event_type as "START" | "STOP");
     setTimestamp(toDatetimeLocal(log.timestamp) || getCurrentDatetimeLocal());
     setReason(log.reason || "");
     setShift(log.shift || "Dayshift");
     setUpdateBebanPln(log.update_beban_pln?.toString() || "");
     setUpdateBebanBtg(log.update_beban_btg?.toString() || "");
+    setPosisiPower((log.posisi_power as "BTG" | "PLN" | "") || "");
+    // Set event type directly from log
+    setEventType(log.event_type);
+    // Initialize checklist from log's main values
+    setMain1Checked(!!log.main1);
+    setMain2Checked(!!log.main2);
+    setMain3Checked(!!log.main3);
     setShowForm(true);
   };
 
@@ -365,6 +454,7 @@ export default function EquipmentLogsPage() {
     if (confirmed && confirmAction) {
       setSelectedEquipment(confirmAction.id);
       setEquipmentName(`${confirmAction.name} (${confirmAction.unit})`);
+      initializeChecklistFromLastEvent(confirmAction.id);
       setShowQuickForm(true);
     }
     setConfirmAction(null);
@@ -397,6 +487,7 @@ export default function EquipmentLogsPage() {
       "Tanggal Jam": toIndonesianDate(log.timestamp),
       "Equipment": log.equipment_name,
       "Unit": log.unit,
+      "Posisi Power": log.posisi_power || "-",
       "Event": log.event_type,
       "Shift": log.shift || "-",
       "Keterangan": log.reason || "-",
@@ -417,7 +508,7 @@ export default function EquipmentLogsPage() {
       hour: "2-digit", minute: "2-digit",
     });
 
-    const eventIcon = log.event_type === "START" ? "►" : "■";
+    const eventIcon = log.event_type === "START" ? "►" : log.event_type === "HEATING_UP" ? "◐" : "■";
 
     let bebanText = "";
     if (log.update_beban_pln != null || log.update_beban_btg != null) {
@@ -427,7 +518,9 @@ export default function EquipmentLogsPage() {
       if (log.update_beban_btg != null) bebanText += `*- BTG :* _${log.update_beban_btg.toFixed(1)} MW_\n`;
     }
 
-    const message = `--------------------------------\n*Laporan Start-Stop Peralatan*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Equipment :* _${log.equipment_name}_\n*Unit :* _${log.unit}_\n*Event :* ${eventIcon} _${log.event_type}_\n*Tanggal :* _${toIndonesianDate(log.timestamp)}_\n*Shift :* _${log.shift || "-"}_\n${bebanText}*Keterangan :* _${log.reason || "-"}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
+    const mains = [log.main1, log.main2, log.main3].filter(Boolean);
+    const mainsText = mains.length > 0 ? mains.join(", ") : "-";
+    const message = `--------------------------------\n*Laporan Start-Stop Peralatan*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Equipment :* _${log.equipment_name}_\n*Start :* _${mainsText}_\n*Unit :* _${log.unit}_\n*Event :* ${eventIcon} _${log.event_type === "HEATING_UP" ? "HEATING UP" : log.event_type}_\n*Tanggal :* _${toIndonesianDate(log.timestamp)}_\n*Shift :* _${log.shift || "-"}_\n${bebanText}*Keterangan :* _${log.reason || "-"}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
@@ -444,14 +537,16 @@ export default function EquipmentLogsPage() {
         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
           log.event_type === "START" 
             ? "bg-green-100 text-green-700" 
+            : log.event_type === "HEATING_UP"
+            ? "bg-orange-100 text-orange-700"
             : "bg-red-100 text-red-700"
         }`}>
-          {log.event_type === "START" ? <CheckCircle size={12} /> : <XCircle size={12} />}
-          {log.event_type}
+          {log.event_type === "START" ? <CheckCircle size={12} /> : log.event_type === "HEATING_UP" ? <Loader2 size={12} /> : <XCircle size={12} />}
+          {log.event_type === "HEATING_UP" ? "HEATING UP" : log.event_type}
         </span>
       )
     },
-    { key: "shift", header: "Shift", render: (log: EquipmentLogWithDetails) => log.shift || "-" },
+    { key: "posisi_power", header: "Posisi Power", render: (log: EquipmentLogWithDetails) => log.posisi_power || "-" },
     {
       key: "update_beban_pln",
       header: "Update PLN (MW)",
@@ -463,6 +558,7 @@ export default function EquipmentLogsPage() {
       render: (log: EquipmentLogWithDetails) => log.update_beban_btg != null ? `${log.update_beban_btg.toFixed(1)} MW` : "-",
     },
     { key: "reason", header: "Alasan", render: (log: EquipmentLogWithDetails) => log.reason || "-" },
+    { key: "shift", header: "Shift", render: (log: EquipmentLogWithDetails) => log.shift || "-" },
     { key: "created_by", header: "Dibuat Oleh", render: (log: EquipmentLogWithDetails) => log.created_by },
     {
       key: "whatsapp" as const,
@@ -618,19 +714,49 @@ export default function EquipmentLogsPage() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {unitEquipment.map(eq => {
                   const lastEvent = getLastEvent(eq.id);
-                  const status = lastEvent === "START" ? "Running" : lastEvent === "STOP" ? "Stopped" : "Unknown";
-                  const statusColor = status === "Running" ? "bg-green-500 text-white" : status === "Stopped" ? "bg-red-500 text-white" : "bg-gray-300 text-gray-700";
-                  const cardBg = status === "Running" ? "bg-green-50 border-green-500" : status === "Stopped" ? "bg-red-50 border-red-500" : "bg-white border-gray-100";
+                  const status = lastEvent === "START" ? "Running" : lastEvent === "HEATING_UP" ? "Heating" : lastEvent === "STOP" ? "Stopped" : "Unknown";
+                  const statusColor = status === "Running" ? "bg-green-500 text-white" : status === "Heating" ? "bg-orange-500 text-white" : status === "Stopped" ? "bg-red-500 text-white" : "bg-gray-300 text-gray-700";
+                  const cardBg = status === "Running" ? "bg-green-50 border-green-500" : status === "Heating" ? "bg-orange-50 border-orange-500" : status === "Stopped" ? "bg-red-50 border-red-500" : "bg-white border-gray-100";
+                  
+                  // Get posisi_power from last log for this equipment
+                  const equipmentLogs = logs.filter(log => log.equipment_id === eq.id);
+                  const lastLog = equipmentLogs.length > 0 ? equipmentLogs[0] : null;
+                  const posisiPower = lastLog?.posisi_power || null;
                   
                   return (
                     <div 
                       key={eq.id} 
                       className={`rounded-xl shadow-sm border px-4 py-3 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow ${cardBg}`}
                       onClick={() => openConfirmDialog(eq)}
+                      style={{ position: 'relative', overflow: 'hidden' }}
                     >
+                      {posisiPower && (
+                        <div 
+                          style={{
+                            position: 'absolute',
+                            top: '8px',
+                            right: '-22px',
+                            transform: 'rotate(45deg)',
+                            backgroundColor: posisiPower === 'BTG' ? '#3b82f6' : '#eab308',
+                            color: 'white',
+                            fontSize: '9px',
+                            fontWeight: '800',
+                            padding: '4px 36px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                            zIndex: 10,
+                            pointerEvents: 'none',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {posisiPower}
+                        </div>
+                      )}
                       <div>
                         <div className="text-sm font-semibold text-gray-900">{eq.name}</div>
-                        <div className="text-xs text-gray-500">({eq.unit})</div>
+                        <div className="text-xs text-blue-600 font-medium">
+                          {[eq.main1, eq.main2, eq.main3].filter(Boolean).join(", ")}
+                        </div>
+                        <div className="text-xs text-gray-500 italic">({eq.unit})</div>
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusColor}`}>
                         {status}
@@ -688,7 +814,14 @@ export default function EquipmentLogsPage() {
                 ) : (
                   <select
                     value={selectedEquipment}
-                    onChange={(e) => setSelectedEquipment(e.target.value ? Number(e.target.value) : "")}
+                    onChange={(e) => {
+                      const val = e.target.value ? Number(e.target.value) : "";
+                      setSelectedEquipment(val);
+                      const eq = equipmentList.find(e => e.id === val);
+                      setMain1Checked(!!eq?.main1);
+                      setMain2Checked(!!eq?.main2);
+                      setMain3Checked(!!eq?.main3);
+                    }}
                     className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                   >
                     <option value="">Pilih Equipment</option>
@@ -699,32 +832,96 @@ export default function EquipmentLogsPage() {
                     ))}
                   </select>
                 )}
+
+                {/* Main Checklist */}
+                {selectedEquipment && (() => {
+                  const eq = equipmentList.find(e => e.id === selectedEquipment);
+                  if (!eq) return null;
+                  const checks = [
+                    { key: "main1", label: eq.main1, checked: main1Checked, setter: setMain1Checked },
+                    { key: "main2", label: eq.main2, checked: main2Checked, setter: setMain2Checked },
+                    { key: "main3", label: eq.main3, checked: main3Checked, setter: setMain3Checked },
+                  ].filter(c => c.label && c.label.trim() !== "");
+                  if (checks.length === 0) return null;
+                  return (
+                    <div className="mt-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">Checklist Main</p>
+                      <div className="flex flex-wrap gap-3">
+                        {eq.main1 && (
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={main1Checked}
+                              disabled={!!editing}
+                              onChange={(e) => {
+                                const newVal = e.target.checked;
+                                setMain1Checked(newVal);
+                                if (!newVal) {
+                                  setMain2Checked(false);
+                                  setMain3Checked(false);
+                                }
+                                const newCount = newVal ? (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0) + 1 : 0;
+                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {eq.main1}
+                          </label>
+                        )}
+                        {eq.main2 && (
+                          <label className={`flex items-center gap-2 text-sm ${main1Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                            <input
+                              type="checkbox"
+                              checked={main2Checked}
+                              disabled={!!editing || !main1Checked || !eq.main1}
+                              onChange={(e) => {
+                                const newVal = e.target.checked;
+                                setMain2Checked(newVal);
+                                if (!newVal) {
+                                  setMain3Checked(false);
+                                }
+                                const newCount = (main1Checked ? 1 : 0) + (newVal ? 1 : 0) + (newVal ? (main3Checked ? 1 : 0) : 0);
+                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {eq.main2}
+                          </label>
+                        )}
+                        {eq.main3 && (
+                          <label className={`flex items-center gap-2 text-sm ${main1Checked && main2Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                            <input
+                              type="checkbox"
+                              checked={main3Checked}
+                              disabled={!!editing || !(main1Checked && main2Checked) || !eq.main1 || !eq.main2}
+                              onChange={(e) => {
+                                const newVal = e.target.checked;
+                                setMain3Checked(newVal);
+                                const newCount = (main1Checked ? 1 : 0) + (main2Checked ? 1 : 0) + (newVal ? 1 : 0);
+                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {eq.main3}
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Event Type */}
+
+
+              {/* Event Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type *</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      value="START"
-                      checked={eventType === "START"}
-                      onChange={() => setEventType("START")}
-                      className="text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">START</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      value="STOP"
-                      checked={eventType === "STOP"}
-                      onChange={() => setEventType("STOP")}
-                      className="text-red-600 focus:ring-red-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">STOP</span>
-                  </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                <div className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm flex items-center gap-2">
+                  {eventType === "START" && <CheckCircle size={16} className="text-green-600" />}
+                  {eventType === "HEATING_UP" && <Loader2 size={16} className="text-orange-600 animate-spin" />}
+                  {eventType === "STOP" && <XCircle size={16} className="text-red-600" />}
+                  <span className="font-medium">{eventType || "-"}</span>
                 </div>
               </div>
 
@@ -748,6 +945,20 @@ export default function EquipmentLogsPage() {
                   className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                 >
                   {SHIFT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+
+              {/* Posisi Power */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power</label>
+                <select
+                  value={posisiPower}
+                  onChange={(e) => setPosisiPower(e.target.value as "BTG" | "PLN" | "")}
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                >
+                  <option value="">Pilih Posisi Power</option>
+                  <option value="BTG">BTG</option>
+                  <option value="PLN">PLN</option>
                 </select>
               </div>
 
@@ -796,7 +1007,7 @@ export default function EquipmentLogsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Stop *</label>
                   <textarea
                     value={reason}
-                    onChange={(e) => setReason(e.target.value)}
+                    disabled={!!editing}
                     rows={3}
                     className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none"
                     placeholder="Contoh: Maintenance, Breakdown, No Material, dll"
@@ -870,6 +1081,80 @@ export default function EquipmentLogsPage() {
                   <span>{equipmentName}</span>
                   <span className="text-gray-400 text-xs ml-2">Locked</span>
                 </div>
+                {selectedEquipment && (() => {
+                  const eq = equipmentList.find(e => e.id === selectedEquipment);
+                  if (!eq) return null;
+                  const checks = [
+                    { key: "main1", label: eq.main1, checked: main1Checked, setter: setMain1Checked },
+                    { key: "main2", label: eq.main2, checked: main2Checked, setter: setMain2Checked },
+                    { key: "main3", label: eq.main3, checked: main3Checked, setter: setMain3Checked },
+                  ].filter(c => c.label && c.label.trim() !== "");
+                  if (checks.length === 0) return null;
+                  return (
+                    <div className="mt-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">Checklist Main</p>
+                      <div className="flex flex-wrap gap-3">
+                        {eq.main1 && (
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={main1Checked}
+                              onChange={(e) => {
+                                const newVal = e.target.checked;
+                                setMain1Checked(newVal);
+                                if (!newVal) {
+                                  setMain2Checked(false);
+                                  setMain3Checked(false);
+                                }
+                                const newCount = newVal ? (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0) + 1 : 0;
+                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {eq.main1}
+                          </label>
+                        )}
+                        {eq.main2 && (
+                          <label className={`flex items-center gap-2 text-sm ${main1Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                            <input
+                              type="checkbox"
+                              checked={main2Checked}
+                              disabled={!!editing || !main1Checked || !eq.main1}
+                              onChange={(e) => {
+                                const newVal = e.target.checked;
+                                setMain2Checked(newVal);
+                                if (!newVal) {
+                                  setMain3Checked(false);
+                                }
+                                const newCount = (main1Checked ? 1 : 0) + (newVal ? 1 : 0) + (newVal ? (main3Checked ? 1 : 0) : 0);
+                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {eq.main2}
+                          </label>
+                        )}
+                        {eq.main3 && (
+                          <label className={`flex items-center gap-2 text-sm ${main1Checked && main2Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                            <input
+                              type="checkbox"
+                              checked={main3Checked}
+                              disabled={!!editing || !(main1Checked && main2Checked) || !eq.main1 || !eq.main2}
+                              onChange={(e) => {
+                                const newVal = e.target.checked;
+                                setMain3Checked(newVal);
+                                const newCount = (main1Checked ? 1 : 0) + (main2Checked ? 1 : 0) + (newVal ? 1 : 0);
+                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            {eq.main3}
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {selectedEquipment && (
                   <div className="mt-2 text-xs">
                     <span className="text-gray-500">Status terakhir: </span>
@@ -885,34 +1170,12 @@ export default function EquipmentLogsPage() {
 
               {/* Event Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type *</label>
-                <div className="flex gap-4">
-                  <label className={`flex items-center gap-2 cursor-pointer ${
-                    selectedEquipment && getLastEvent(selectedEquipment) === "START" ? "opacity-50 cursor-not-allowed" : ""
-                  }`}>
-                    <input
-                      type="radio"
-                      value="START"
-                      checked={eventType === "START"}
-                      onChange={() => setEventType("START")}
-                      disabled={selectedEquipment ? getLastEvent(selectedEquipment) === "START" : false}
-                      className="text-green-600 focus:ring-green-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">START</span>
-                  </label>
-                  <label className={`flex items-center gap-2 cursor-pointer ${
-                    selectedEquipment && getLastEvent(selectedEquipment) === "STOP" ? "opacity-50 cursor-not-allowed" : ""
-                  }`}>
-                    <input
-                      type="radio"
-                      value="STOP"
-                      checked={eventType === "STOP"}
-                      onChange={() => setEventType("STOP")}
-                      disabled={selectedEquipment ? getLastEvent(selectedEquipment) === "STOP" : false}
-                      className="text-red-600 focus:ring-red-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">STOP</span>
-                  </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                <div className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm flex items-center gap-2">
+                  {eventType === "START" && <CheckCircle size={16} className="text-green-600" />}
+                  {eventType === "HEATING_UP" && <Loader2 size={16} className="text-orange-600 animate-spin" />}
+                  {eventType === "STOP" && <XCircle size={16} className="text-red-600" />}
+                  <span className="font-medium">{eventType || "-"}</span>
                 </div>
                 {selectedEquipment && (
                   <div className="mt-2 text-xs text-gray-500">
@@ -943,6 +1206,20 @@ export default function EquipmentLogsPage() {
                   className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                 >
                   {SHIFT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+
+              {/* Posisi Power */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power</label>
+                <select
+                  value={posisiPower}
+                  onChange={(e) => setPosisiPower(e.target.value as "BTG" | "PLN" | "")}
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                >
+                  <option value="">Pilih Posisi Power</option>
+                  <option value="BTG">BTG</option>
+                  <option value="PLN">PLN</option>
                 </select>
               </div>
 
