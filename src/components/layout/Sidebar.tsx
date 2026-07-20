@@ -29,7 +29,6 @@ const EQUIPMENT_ITEMS = [
   { href: "/equipment-logs", label: "Start-Stop Peralatan", icon: Activity, glow: "blue" },
   { href: "/lap-operasi-harian", label: "Lap. Operasi Harian", icon: FileText },
   { href: "/lap-operasi-bulanan", label: "Lap. Operasi Bulanan", icon: FileText },
-  { href: "/tonasa-4.0", label: "Tonasa 4.0", icon: Activity, glow: "purple" },
 ];
 
 interface Props {
