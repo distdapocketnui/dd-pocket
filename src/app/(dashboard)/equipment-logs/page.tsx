@@ -27,7 +27,6 @@ export default function EquipmentLogsPage() {
   const { createApproval } = useData();
   const canEdit = hasRole("Admin", "Supervisor", "Operator");
   const isAdmin = hasRole("Admin");
-  const isOperator = hasRole("Operator", "Supervisor");
 
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [logs, setLogs] = useState<EquipmentLogWithDetails[]>([]);
@@ -174,7 +173,6 @@ export default function EquipmentLogsPage() {
     try {
       const payload = {
         equipment_id: selectedEquipment,
-        equipment_name: equipmentList.find(eq => eq.id === selectedEquipment)?.name || "",
         event_type: eventType as "START" | "STOP",
         timestamp: timestamp,
         reason: eventType === "STOP" ? reason.trim() : null,
@@ -184,30 +182,17 @@ export default function EquipmentLogsPage() {
         created_by: user?.name || "",
       };
 
-      if (isOperator) {
-        // Operator/Supervisor perlu approval
-        const oldItem = editing ? logs.find(l => l.id === editing.id) || null : null;
-        setPendingApproval({
-          table_name: "equipment_logs",
-          record_id: editing ? editing.id : 0,
-          action_type: editing ? "edit" : "create",
-          old_data: oldItem,
-          new_data: payload,
-        });
-        setShowCutiDialog(true);
+      // Semua role langsung simpan untuk tambah/edit
+      if (editing) {
+        await updateEquipmentLog(editing.id, payload);
       } else {
-        // Admin langsung simpan
-        if (editing) {
-          await updateEquipmentLog(editing.id, payload);
-        } else {
-          await createEquipmentLog(payload);
-        }
-
-        setShowForm(false);
-        setEditing(null);
-        resetForm();
-        fetchLogs();
+        await createEquipmentLog(payload);
       }
+
+      setShowForm(false);
+      setEditing(null);
+      resetForm();
+      fetchLogs();
     } catch (err) {
       logger.error('save log error', err);
       alert("Gagal menyimpan data: " + (err as any)?.message);
@@ -218,6 +203,24 @@ export default function EquipmentLogsPage() {
 
   // Handle delete
   const handleDelete = async (id: number) => {
+    if (!isAdmin) {
+      // Non-admin perlu approval untuk hapus
+      const log = logs.find(l => l.id === id);
+      if (log) {
+        setPendingApproval({
+          table_name: "equipment_logs",
+          record_id: id,
+          action_type: "delete",
+          old_data: log,
+          new_data: null,
+        });
+        setShowCutiDialog(true);
+        setConfirmDelete(null);
+        return;
+      }
+    }
+    
+    // Admin langsung hapus
     try {
       await deleteEquipmentLog(id);
       setConfirmDelete(null);
@@ -282,7 +285,6 @@ export default function EquipmentLogsPage() {
     try {
       const payload = {
         equipment_id: selectedEquipment,
-        equipment_name: equipmentList.find(eq => eq.id === selectedEquipment)?.name || "",
         event_type: eventType as "START" | "STOP",
         timestamp: timestamp,
         reason: eventType === "STOP" ? reason.trim() : null,
@@ -292,23 +294,11 @@ export default function EquipmentLogsPage() {
         created_by: user?.name || "",
       };
 
-      if (isOperator) {
-        // Operator/Supervisor perlu approval
-        setPendingApproval({
-          table_name: "equipment_logs",
-          record_id: 0,
-          action_type: "create",
-          old_data: null,
-          new_data: payload,
-        });
-        setShowCutiDialog(true);
-      } else {
-        // Admin langsung simpan
-        await createEquipmentLog(payload);
+      // Semua role langsung simpan untuk quick form
+      await createEquipmentLog(payload);
 
-        resetQuickForm();
-        fetchLogs();
-      }
+      resetQuickForm();
+      fetchLogs();
     } catch (err) {
       logger.error('save log error', err);
       alert("Gagal menyimpan data: " + (err as any)?.message);
