@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import {
-  LayoutDashboard, Lock, Wrench, FileText, Users, ChevronLeft, X, Database, ClipboardList, ChevronDown, Activity, Clock
+  LayoutDashboard, Lock, Wrench, FileText, Users, ChevronLeft, X, Database, ClipboardList, ChevronDown, Activity, Clock, ExternalLink
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/laporan-p2b", label: "Laporan P2B", icon: ClipboardList, glow: "green" },
   { href: "/lap-prod-listrik", label: "Lap. Prod. Listrik", icon: FileText },
+  { href: "http://172.18.3.10:8088/data/perspective/client/ProjectBTG/pltu-ab", label: "Tonasa 4.0", icon: Activity, glow: "purple", external: true, mobileHref: "http://172.18.3.10:8088/data/perspective/client/ProjectBTG/pltu-ab", desktopHref: "http://172.18.3.10:8088/data/perspective/client/ProjectBTG/wtp-ab" },
   { href: "/pengguna", label: "Pengguna", icon: Users },
   { href: "/database-status", label: "DB Status", icon: Database },
 ];
@@ -28,6 +29,7 @@ const EQUIPMENT_ITEMS = [
   { href: "/equipment-logs", label: "Start-Stop Peralatan", icon: Activity, glow: "blue" },
   { href: "/lap-operasi-harian", label: "Lap. Operasi Harian", icon: FileText },
   { href: "/lap-operasi-bulanan", label: "Lap. Operasi Bulanan", icon: FileText },
+  { href: "/tonasa-4.0", label: "Tonasa 4.0", icon: Activity, glow: "purple" },
 ];
 
 interface Props {
@@ -54,6 +56,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   const maintCount = switchGears.filter((s) => s.status === "Maintenance").length;
 
   const isAdmin = role === "Admin";
+  const isAdminOrManagerOrSupervisor = ["Admin", "Manager", "Supervisor"].includes(role || "");
 
   const filteredNav = NAV_ITEMS.filter((item) => {
     if (isVisitor && !["/dashboard", "/lototo", "/sg-maintenance", "/laporan-lototo"].includes(item.href)) return false;
@@ -82,6 +85,10 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     if ('badgeKey' in item && item.badgeKey === "lototo") badge = lototoCount || undefined;
     if ('badgeKey' in item && item.badgeKey === "maintenance") badge = maintCount || undefined;
     return { ...item, badge };
+  }).filter(item => {
+    // Tonasa 4.0 only visible to Admin, Manager, Supervisor
+    if (item.label === "Tonasa 4.0" && !isAdminOrManagerOrSupervisor) return false;
+    return true;
   });
 
   const sidebarContent = (
@@ -132,7 +139,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           );
         })}
 
-        {/* Laporan Switchgear Group */}
+        {/* Switchgear Group */}
         {filteredSwitchgear.length > 0 && (
           <div>
             <button
@@ -242,6 +249,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                         item.glow === "red" ? "text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.7)] font-bold" :
                         item.glow === "green" ? "text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.7)] font-bold" :
                         item.glow === "blue" ? "text-blue-400 drop-shadow-[0_0_6px_rgba(96,165,250,0.7)] font-bold" :
+                        item.glow === "purple" ? "text-purple-400 drop-shadow-[0_0_6px_rgba(192,132,252,0.7)] font-bold" :
                         ""
                       }`}>{item.label}</span>
                       {isSubActive && (
@@ -267,9 +275,48 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
             )}
           </div>
         )}
-        {/* Other nav items (Laporan P2B, Pengguna, DB Status) */}
+
+        {/* Other nav items (Laporan P2B, Lap. Prod. Listrik, Tonasa 4.0, Pengguna, DB Status) */}
         {navData.filter(item => item.href !== "/dashboard").map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = !item.external && pathname === item.href;
+          
+          // External link (Tonasa 4.0)
+          if (item.external) {
+            // Determine URL based on device (desktop vs mobile)
+            const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+            const targetHref = isMobile && item.mobileHref 
+              ? item.mobileHref 
+              : (!isMobile && item.desktopHref 
+                ? item.desktopHref 
+                : item.href);
+            
+            return (
+              <a
+                key={item.href}
+                href={targetHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onMobileClose}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative
+                  text-white/60 hover:text-white hover:bg-white/5`}
+              >
+                <item.icon size={18} className="flex-shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className={`whitespace-nowrap ${
+                      item.glow === "red" ? "text-red-400 drop-shadow-[0_0_6px_rgba(248,113,113,0.7)] font-bold" :
+                      item.glow === "green" ? "text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.7)] font-bold" :
+                      item.glow === "purple" ? "text-purple-400 drop-shadow-[0_0_6px_rgba(192,132,252,0.7)] font-bold" :
+                      ""
+                    }`}>{item.label}</span>
+                    <ExternalLink size={14} className="opacity-60" />
+                  </>
+                )}
+              </a>
+            );
+          }
+          
+          // Internal link
           return (
             <Link
               key={item.href}
