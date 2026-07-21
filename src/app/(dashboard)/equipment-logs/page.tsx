@@ -219,8 +219,8 @@ export default function EquipmentLogsPage() {
     const resolvedEventType = getEventTypeFromChecklist(availableMains);
     setEventType(resolvedEventType);
 
-    // Validasi (hanya untuk tambah log baru, bukan edit)
-    if (!editing) {
+    // Validasi (hanya untuk tambah log baru, bukan edit, dan bukan Admin)
+    if (!editing && !isAdmin) {
       if (resolvedEventType === "START" && !canStartEquipment(selectedEquipment)) {
         alert("Equipment harus di-STOP terlebih dahulu sebelum di-START");
         return;
@@ -354,16 +354,18 @@ export default function EquipmentLogsPage() {
     const resolvedEventType = getEventTypeFromChecklist(availableMains);
     setEventType(resolvedEventType);
 
-    // Validasi
-    if (resolvedEventType === "START" && !canStartEquipment(selectedEquipment)) {
-      alert("Equipment harus di-STOP terlebih dahulu sebelum di-START");
-      return;
+    // Validasi (hanya untuk quick form dan bukan Admin)
+    if (!isAdmin) {
+      if (resolvedEventType === "START" && !canStartEquipment(selectedEquipment)) {
+        alert("Equipment harus di-STOP terlebih dahulu sebelum di-START");
+        return;
+      }
+      if (resolvedEventType === "STOP" && !canStopEquipment(selectedEquipment)) {
+        alert("Equipment harus di-START terlebih dahulu sebelum di-STOP");
+        return;
+      }
+      // HEATING_UP tidak memerlukan validasi, bisa langsung disimpan
     }
-    if (resolvedEventType === "STOP" && !canStopEquipment(selectedEquipment)) {
-      alert("Equipment harus di-START terlebih dahulu sebelum di-STOP");
-      return;
-    }
-    // HEATING_UP tidak memerlukan validasi, bisa langsung disimpan
     setQuickSaving(true);
     try {
       const payload = {
@@ -793,7 +795,7 @@ export default function EquipmentLogsPage() {
                       <div>
                         <div className="text-sm font-semibold text-gray-900">{eq.name}</div>
                         <div className="text-xs text-blue-600 font-medium">
-                          {[eq.main1, eq.main2, eq.main3].filter(Boolean).join(", ")}
+                          {lastLog ? [lastLog.main1, lastLog.main2, lastLog.main3].filter(Boolean).join(", ") : [eq.main1, eq.main2, eq.main3].filter(Boolean).join(", ")}
                         </div>
                         <div className="text-xs text-gray-500 italic">({eq.unit})</div>
                       </div>
