@@ -1,17 +1,21 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  getEquipment, 
-  getEquipmentLogs, 
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useData } from "@/context/DataContext";
+import {
+  getEquipment,
+  getEquipmentLogs,
   type Equipment,
-  type EquipmentLogWithDetails 
+  type EquipmentLogWithDetails
 } from "@/lib/equipment-api";
 import { downloadPdfMulti } from "@/lib/pdf";
 import { formatPeriod, toIndonesianDate } from "@/lib/date";
 import { Download, Calendar, Loader2, FileSpreadsheet } from "lucide-react";
 import { logger } from "@/lib/logger";
 import * as XLSX from "xlsx";
+import { canAccessRoute } from "@/lib/route-protection";
 
 interface EquipmentOperationStatus {
   equipment: Equipment;
@@ -35,6 +39,17 @@ const OPERATION_CATEGORIES = [
 ];
 
 export default function LaporanOperasiPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { data } = useData();
+
+  // Proteksi route: redirect ke dashboard jika role tidak punya akses
+  useEffect(() => {
+    if (!canAccessRoute("/lap-operasi-harian", user?.role)) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
+
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [logs, setLogs] = useState<EquipmentLogWithDetails[]>([]);
   const [loading, setLoading] = useState(true);

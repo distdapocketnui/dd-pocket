@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { Database, CheckCircle, XCircle, Loader, RefreshCw, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { canAccessRoute } from "@/lib/route-protection";
 interface TableStatus {
   name: string;
   status: "checking" | "connected" | "error";
@@ -17,13 +18,14 @@ export default function DatabaseStatusPage() {
   const { user } = useAuth();
   const router = useRouter();
 
+  // Proteksi route: redirect ke dashboard jika role tidak punya akses
   useEffect(() => {
-    if (user && (user.role === "Operator" || user.role === "Supervisor" || user.role === "Manager")) {
+    if (!canAccessRoute("/database-status", user?.role)) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
-  if (user?.role === "Operator" || user?.role === "Supervisor" || user?.role === "Manager") return null;
+  if (!canAccessRoute("/database-status", user?.role)) return null;
 
   const ALL_TABLES = [
     "users",

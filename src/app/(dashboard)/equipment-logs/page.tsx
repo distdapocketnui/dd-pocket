@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
+import { useRouter } from "next/navigation";
+import { canAccessRoute } from "@/lib/route-protection";
 import { 
   getEquipment, 
   getEquipmentLogs, 
@@ -25,8 +27,16 @@ const SHIFT_OPTIONS = ["Dayshift", "Shift 1 (Pagi)", "Shift 2 (Siang)", "Shift 3
 export default function EquipmentLogsPage() {
   const { user, hasRole } = useAuth();
   const { createApproval } = useData();
+  const router = useRouter();
   const canEdit = hasRole("Admin", "Supervisor", "Operator");
   const isAdmin = hasRole("Admin");
+
+  // Proteksi route: redirect ke dashboard jika role tidak punya akses
+  useEffect(() => {
+    if (!canAccessRoute("/equipment-logs", user?.role)) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [logs, setLogs] = useState<EquipmentLogWithDetails[]>([]);

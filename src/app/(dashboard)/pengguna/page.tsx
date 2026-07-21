@@ -10,17 +10,19 @@ import { User, UserRole, UserStatus } from "@/types";
 import { getInitials, roleBadgeClass, statusUserBadgeClass, statusUserDotClass } from "@/lib/utils";
 import { Plus, Eye, EyeOff, CheckCircle, X, KeyRound, AlertTriangle } from "lucide-react";
 import { verifyPassword } from "@/lib/auth";
+import { canAccessRoute } from "@/lib/route-protection";
 export default function PenggunaPage() {
   const { user } = useAuth();
   const router = useRouter();
 
+  // Proteksi route: redirect ke dashboard jika role tidak punya akses
   useEffect(() => {
-    if (user && user.role !== "Admin") {
+    if (!canAccessRoute("/pengguna", user?.role)) {
       router.replace("/dashboard");
     }
   }, [user, router]);
 
-  if (user?.role !== "Admin") return null;
+  if (!canAccessRoute("/pengguna", user?.role)) return null;
 
   const { users, addUser, updateUser, deleteUser } = useData();
   const { hasRole, user: currentUser } = useAuth();

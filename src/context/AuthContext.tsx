@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-import { User, UserRole } from "@/types";
+import { User, UserRole, UserStatus } from "@/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { verifyPassword } from "@/lib/auth";
 import { logger } from "@/lib/logger";
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const supabase = getSupabaseClient();
       await supabase.from("activity_logs").insert({
         action,
-        user: currentUser?.name || "System",
+        user_name: currentUser?.name || "System",
         page,
         timestamp: new Date().toLocaleString("id-ID", {
           year: "numeric", month: "2-digit", day: "2-digit",

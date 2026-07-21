@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import DataTable from "@/components/ui/DataTable";
 import { downloadPdfMulti } from "@/lib/pdf";
@@ -12,6 +13,7 @@ import ImageUpload from "@/components/ui/ImageUpload";
 import ImageGallery from "@/components/ui/ImageGallery";
 import type { LaporanP2B, UnitPengaturan } from "@/types";
 import { logger } from "@/lib/logger";
+import { canAccessRoute } from "@/lib/route-protection";
 
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Power House", "Power Plant", "Tambang", "Lainnya"];
 const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
@@ -139,11 +141,19 @@ function emptyForm(user?: { name: string; regu: string }, kegiatan: "Pengaturan 
 
 export default function LaporanP2BPage() {
   const { user, hasRole } = useAuth();
+  const router = useRouter();
   const canEdit = hasRole("Admin", "Supervisor", "Operator");
   const canViewAllData = hasRole("Admin", "Supervisor", "Operator", "Manager");
   const isAdmin = hasRole("Admin");
   const isVisitor = user?.role === "Visitor";
   const userRegu = user?.regu || "";
+
+  // Proteksi route: redirect ke dashboard jika role tidak punya akses
+  useEffect(() => {
+    if (!canAccessRoute("/laporan-p2b", user?.role)) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
   const [data, setData] = useState<LaporanP2B[]>([]);
   const [loading, setLoading] = useState(true);

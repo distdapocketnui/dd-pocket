@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import StatCard from "@/components/ui/StatCard";
@@ -13,6 +14,7 @@ import Modal from "@/components/ui/Modal";
 import FilterBar from "@/components/ui/FilterBar";
 import { SwitchGear, SGStatus } from "@/types";
 import { Layers, CheckCircle, Wrench, CheckCheck, Loader2 } from "lucide-react";
+import { canAccessRoute } from "@/lib/route-protection";
 import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentDatetimeLocal } from "@/lib/date";
 import SupervisorCutiDialog from "@/components/ui/SupervisorCutiDialog";
@@ -74,11 +76,19 @@ function PicDropdown({ users, value, onChange }: { users: { id: number; name: st
 export default function SGMaintenancePage() {
   const { switchGears, addSwitchGear, updateSwitchGear, deleteSwitchGear, createApproval } = useData();
   const { user, hasRole } = useAuth();
+  const router = useRouter();
   const isOperator = user?.role === "Operator" || user?.role === "Supervisor";
   const isDayshiftOperator = user?.role === "Operator" && user?.regu === "Dayshift";
   const isVisitor = user?.role === "Visitor";
   const canEdit = hasRole("Admin", "Supervisor") || (hasRole("Operator") && !isDayshiftOperator);
   const canDirect = hasRole("Admin");
+
+  // Proteksi route: redirect ke dashboard jika role tidak punya akses
+  useEffect(() => {
+    if (!canAccessRoute("/sg-maintenance", user?.role)) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");

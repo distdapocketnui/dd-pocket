@@ -74,6 +74,7 @@ function mapUser(row: any): User {
     role: row.role as UserRole,
     regu: row.regu || "",
     status: row.status,
+    avatar_url: row.avatar_url || undefined,
   };
 }
 
@@ -348,6 +349,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (data.role !== undefined) updateData.role = data.role;
       if (data.regu !== undefined) updateData.regu = data.regu;
       if (data.status !== undefined) updateData.status = data.status;
+      if (data.avatar_url !== undefined) updateData.avatar_url = data.avatar_url;
 
       const { data: updated, error } = await supabase
         .from("users")

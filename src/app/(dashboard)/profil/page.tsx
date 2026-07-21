@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
 import { getInitials, roleBadgeClass } from "@/lib/utils";
@@ -11,9 +12,20 @@ import {
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import imageCompression from "browser-image-compression";
+import { canAccessRoute } from "@/lib/route-protection";
 export default function ProfilPage() {
   const { user, refreshUser } = useAuth();
+  const router = useRouter();
   const { updateUser, createApproval } = useData();
+
+  // Proteksi route: redirect ke dashboard jika role tidak punya akses
+  useEffect(() => {
+    if (!canAccessRoute("/profil", user?.role)) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
+
+  if (!canAccessRoute("/profil", user?.role)) return null;
 
   if (user?.role === "Visitor") return null;
 
@@ -99,16 +111,7 @@ export default function ProfilPage() {
         setAvatarError("");
 
         try {
-          // Hapus foto lama jika ada
-          if (avatarUrl) {
-            await fetch("/api/storage/delete", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ urls: [avatarUrl] }),
-            });
-          }
-
-          // Upload foto baru
+          // Upload foto baru terlebih dahulu
           const formData = new FormData();
           formData.append("file", avatarFile);
 
@@ -123,7 +126,18 @@ export default function ProfilPage() {
           }
 
           const data = await res.json();
-          avatarUrl = data.url;
+          const newAvatarUrl = data.url;
+
+          // Hapus foto lama jika ada
+          if (avatarUrl) {
+            await fetch("/api/storage/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ urls: [avatarUrl] }),
+            });
+          }
+
+          avatarUrl = newAvatarUrl;
         } catch (err: any) {
           setAvatarError(err.message || "Gagal upload foto");
           setUploadingAvatar(false);
