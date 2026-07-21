@@ -119,24 +119,26 @@ export default function EquipmentLogsPage() {
     return true;
   });
 
-  // Check if equipment can START (last event must be STOP or no event)
+  // Check if equipment can START (last event must be STOP or HEATING_UP or no event)
   const canStartEquipment = (equipmentId: number): boolean => {
     const equipmentLogs = logs
       .filter(log => log.equipment_id === equipmentId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     if (equipmentLogs.length === 0) return true;
-    return equipmentLogs[0].event_type === "STOP";
+    const lastEvent = equipmentLogs[0].event_type;
+    return lastEvent === "STOP" || lastEvent === "HEATING_UP";
   };
 
-  // Check if equipment can STOP (last event must be START)
+  // Check if equipment can STOP (last event must be START or HEATING_UP)
   const canStopEquipment = (equipmentId: number): boolean => {
     const equipmentLogs = logs
       .filter(log => log.equipment_id === equipmentId)
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     if (equipmentLogs.length === 0) return false;
-    return equipmentLogs[0].event_type === "START";
+    const lastEvent = equipmentLogs[0].event_type;
+    return lastEvent === "START" || lastEvent === "HEATING_UP";
   };
 
   // Get last event for equipment
@@ -227,6 +229,7 @@ export default function EquipmentLogsPage() {
         alert("Equipment harus di-START terlebih dahulu sebelum di-STOP");
         return;
       }
+      // HEATING_UP tidak memerlukan validasi, bisa langsung disimpan
     }
     setSaving(true);
     try {
@@ -360,6 +363,7 @@ export default function EquipmentLogsPage() {
       alert("Equipment harus di-START terlebih dahulu sebelum di-STOP");
       return;
     }
+    // HEATING_UP tidak memerlukan validasi, bisa langsung disimpan
     setQuickSaving(true);
     try {
       const payload = {
@@ -454,7 +458,42 @@ export default function EquipmentLogsPage() {
     if (confirmed && confirmAction) {
       setSelectedEquipment(confirmAction.id);
       setEquipmentName(`${confirmAction.name} (${confirmAction.unit})`);
-      initializeChecklistFromLastEvent(confirmAction.id);
+      
+      // Initialize checklist and auto-detect event type from last event
+      const eq = equipmentList.find(e => e.id === confirmAction.id);
+      if (eq) {
+        const equipmentLogs = logs
+          .filter(log => log.equipment_id === confirmAction.id)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        
+        const lastLog = equipmentLogs[0];
+        let initialMain1 = false, initialMain2 = false, initialMain3 = false;
+        
+        if (lastLog) {
+          if (lastLog.event_type === "START") {
+            initialMain1 = !!eq.main1;
+            initialMain2 = !!eq.main2;
+            initialMain3 = !!eq.main3;
+            setEventType("START");
+          } else if (lastLog.event_type === "STOP") {
+            setEventType("STOP");
+          } else if (lastLog.event_type === "HEATING_UP") {
+            initialMain1 = !!lastLog.main1;
+            initialMain2 = !!lastLog.main2;
+            initialMain3 = !!lastLog.main3;
+            setEventType("HEATING_UP");
+          }
+        } else {
+          // No previous log, default to STOP
+          setEventType("STOP");
+        }
+        
+        setMain1Checked(initialMain1);
+        setMain2Checked(initialMain2);
+        setMain3Checked(initialMain3);
+        setPosisiPower((lastLog?.posisi_power as "BTG" | "PLN" | "") || "");
+      }
+      
       setShowQuickForm(true);
     }
     setConfirmAction(null);
@@ -860,7 +899,7 @@ export default function EquipmentLogsPage() {
                                   setMain2Checked(false);
                                   setMain3Checked(false);
                                 }
-                                const newCount = newVal ? (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0) + 1 : 0;
+                                const newCount = (newVal ? 1 : 0) + (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0);
                                 setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
                               }}
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -1106,7 +1145,7 @@ export default function EquipmentLogsPage() {
                                   setMain2Checked(false);
                                   setMain3Checked(false);
                                 }
-                                const newCount = newVal ? (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0) + 1 : 0;
+                                const newCount = (newVal ? 1 : 0) + (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0);
                                 setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
                               }}
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"

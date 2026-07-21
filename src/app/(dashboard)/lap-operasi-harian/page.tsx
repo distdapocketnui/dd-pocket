@@ -106,14 +106,20 @@ export default function LaporanOperasiPage() {
     // Determine the date range to analyze
     let dayStart: Date;
     let dayEnd: Date;
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
     
     if (selectedDate) {
-      // Selected date: 00:00 to 24:00
       dayStart = new Date(selectedDate + 'T00:00:00');
-      dayEnd = new Date(selectedDate + 'T23:59:59.999');
+      // Jika tanggal yang dipilih adalah hari ini, dayEnd = waktu saat ini
+      // Jika tanggal yang dipilih adalah hari lain, dayEnd = 23:59:59
+      if (selectedDate === todayStr) {
+        dayEnd = now;
+      } else {
+        dayEnd = new Date(selectedDate + 'T23:59:59.999');
+      }
     } else {
       // No filter: today 00:00 to now
-      const now = new Date();
       dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
       dayEnd = now;
     }
@@ -136,7 +142,9 @@ export default function LaporanOperasiPage() {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     if (beforeLogs.length > 0) {
-      initialStatus = beforeLogs[0].event_type as "START" | "STOP";
+      const lastEventType = beforeLogs[0].event_type;
+      // HEATING_UP dianggap sebagai STOP
+      initialStatus = lastEventType === "START" ? "START" : "STOP";
     }
     
     // If no events before dayStart, check if there are any events at all
@@ -146,7 +154,9 @@ export default function LaporanOperasiPage() {
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       
       if (allLogs.length > 0) {
-        initialStatus = allLogs[0].event_type as "START" | "STOP";
+        const lastEventType = allLogs[0].event_type;
+        // HEATING_UP dianggap sebagai STOP
+        initialStatus = lastEventType === "START" ? "START" : "STOP";
       }
     }
 
@@ -162,6 +172,9 @@ export default function LaporanOperasiPage() {
       const log = equipmentLogs[i];
       const logTime = new Date(log.timestamp);
 
+      // HEATING_UP dianggap sebagai STOP
+      const isStopEvent = log.event_type === "STOP" || log.event_type === "HEATING_UP";
+
       if (log.event_type === "START") {
         // If previously stopped or unknown, calculate stop time until this START
         if (currentState === "STOP" || currentState === null) {
@@ -174,8 +187,8 @@ export default function LaporanOperasiPage() {
         currentState = "START";
         lastEvent = "START";
         lastEventTime = log.timestamp;
-      } else if (log.event_type === "STOP") {
-        // If previously started, calculate running time until this STOP
+      } else if (isStopEvent) {
+        // If previously started, calculate running time until this STOP/HEATING_UP
         if (currentState === "START") {
           const prevEventTime = i > 0 ? new Date(equipmentLogs[i - 1].timestamp) : dayStart;
           const hours = (logTime.getTime() - prevEventTime.getTime()) / (1000 * 60 * 60);
@@ -184,7 +197,7 @@ export default function LaporanOperasiPage() {
           }
         }
         currentState = "STOP";
-        lastEvent = "STOP";
+        lastEvent = "STOP"; // Simpan sebagai STOP untuk tracking
         lastEventTime = log.timestamp;
         lastReason = log.reason;
       }
@@ -212,11 +225,11 @@ export default function LaporanOperasiPage() {
       }
     }
 
-    // Ensure total equals 24 hours (or less if today and not yet 24h)
+    // Calculate availability
     const totalHours = runningHours + stopHours;
     const availability = totalHours > 0 ? (runningHours / totalHours) * 100 : 0;
 
-    // Determine current status
+    // Determine current status for display (HEATING_UP tetap ditampilkan)
     let currentStatus: "Running" | "Stopped" | "Unknown" = "Unknown";
     if (currentState === "START") {
       currentStatus = "Running";
