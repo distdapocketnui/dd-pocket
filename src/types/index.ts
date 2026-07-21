@@ -41,6 +41,7 @@ export interface User {
   role: UserRole;
   regu: string;
   status: UserStatus;
+  avatar_url?: string;
 }
 
 export interface ChangeApproval {

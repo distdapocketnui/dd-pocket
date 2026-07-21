@@ -7,7 +7,7 @@ import { getInitials, roleBadgeClass } from "@/lib/utils";
 import {
   Eye, EyeOff, Mail, Phone, Building2, Users, User,
   KeyRound, Shield, Save, X, CheckCircle, Lock, Users as UsersIcon,
-  GitBranch,
+  GitBranch, Camera, Trash2,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 export default function ProfilPage() {
@@ -29,6 +29,13 @@ export default function ProfilPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [hasDefaultPassword, setHasDefaultPassword] = useState(false);
+
+  // Upload foto profil
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Refresh user data on mount + when tab becomes visible (e.g. after approval)
   useEffect(() => {
@@ -81,14 +88,121 @@ export default function ProfilPage() {
     if (!user) return;
     setSaving(true);
     setSaveSuccess(false);
-    const result = await updateUser(user.id, form);
-    if (result) {
-      await refreshUser();
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 2000);
+
+    try {
+      let avatarUrl = user.avatar_url;
+
+      // Jika ada foto baru yang diupload
+      if (avatarFile) {
+        setUploadingAvatar(true);
+        setAvatarError("");
+
+        try {
+          // Hapus foto lama jika ada
+          if (avatarUrl) {
+            await fetch("/api/storage/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ urls: [avatarUrl] }),
+            });
+          }
+
+          // Upload foto baru
+          const formData = new FormData();
+          formData.append("file", avatarFile);
+
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Gagal upload foto");
+          }
+
+          const data = await res.json();
+          avatarUrl = data.url;
+        } catch (err: any) {
+          setAvatarError(err.message || "Gagal upload foto");
+          setUploadingAvatar(false);
+          setSaving(false);
+          return;
+        } finally {
+          setUploadingAvatar(false);
+        }
+      }
+
+      // Update user data
+      const updateData: any = { ...form };
+      if (avatarUrl !== undefined) {
+        updateData.avatar_url = avatarUrl;
+      }
+
+      const result = await updateUser(user.id, updateData);
+      if (result) {
+        await refreshUser();
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2000);
+        setAvatarFile(null);
+        setAvatarPreview(null);
+        setEditing(false);
+      }
+    } catch (err) {
+      console.error("Save error:", err);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    setEditing(false);
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi tipe file
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Hanya file gambar yang diizinkan");
+      return;
+    }
+
+    // Validasi ukuran (maks 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("Ukuran file terlalu besar, maksimal 5MB");
+      return;
+    }
+
+    setAvatarError("");
+    setAvatarFile(file);
+
+    // Buat preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setAvatarPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+
+    try {
+      // Hapus dari storage jika ada URL
+      if (user.avatar_url) {
+        await fetch("/api/storage/delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ urls: [user.avatar_url] }),
+        });
+      }
+
+      // Update user dengan avatar_url = null
+      await updateUser(user.id, { avatar_url: null });
+      await refreshUser();
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    } catch (err) {
+      console.error("Remove avatar error:", err);
+    }
   };
 
   const passwordValid = resetForm.newPassword.length >= 8;
@@ -174,9 +288,35 @@ export default function ProfilPage() {
         {/* Left — Avatar Card */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
-            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-blue-500 via-emerald-400 to-emerald-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-emerald-200/50">
-              {getInitials(user.name)}
+            <div className="relative inline-block">
+              {user.avatar_url ? (
+                <img
+                  src={user.avatar_url}
+                  alt={user.name}
+                  className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 via-emerald-400 to-emerald-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-emerald-200/50">
+                  {getInitials(user.name)}
+                </div>
+              )}
+              {editing && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md hover:bg-blue-700 transition-colors"
+                  title="Ganti foto profil"
+                >
+                  <Camera size={14} />
+                </button>
+              )}
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
             <h2 className="mt-4 text-lg font-bold text-gray-900">{user.name}</h2>
             <span className={`inline-block mt-1.5 text-[11px] font-semibold px-3 py-1 rounded-full ${roleBadgeClass(user.role)}`}>
               <Shield size={11} className="inline mr-1" />
@@ -215,6 +355,56 @@ export default function ProfilPage() {
                 <span className="w-2 h-2 rounded-full bg-blue-500" />
                 Edit Informasi Profil
               </h3>
+              
+              {/* Avatar Upload */}
+              <div className="mb-6 flex items-center gap-4">
+                <div className="relative">
+                  {(avatarPreview || user.avatar_url) ? (
+                    <img
+                      src={avatarPreview || user.avatar_url || ""}
+                      alt="Preview"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 via-emerald-400 to-emerald-500 flex items-center justify-center text-white text-xl font-bold">
+                      {getInitials(user.name)}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}\n                      className="px-3 py-2 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5"
+                    >
+                      <Camera size={14} />
+                      {avatarPreview ? "Ganti Foto" : "Upload Foto"}
+                    </button>
+                    {(avatarPreview || user.avatar_url) && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="px-3 py-2 bg-red-50 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                      >
+                        <Trash2 size={14} />
+                        Hapus Foto
+                      </button>
+                    )}
+                  </div>
+                  {avatarError && (
+                    <p className="text-xs text-red-600 mt-1.5">{avatarError}</p>
+                  )}
+                  <p className="text-[10px] text-gray-400 mt-1">Maksimal 5MB, format: JPG, PNG, GIF</p>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {editFields.map(({ key, label, type, required }) => (
                   <div key={key}>

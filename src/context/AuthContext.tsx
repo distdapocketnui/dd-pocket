@@ -30,7 +30,8 @@ function mapToUser(raw: any): User {
     username: raw.username,
     password: raw.password,
     role: raw.role as UserRole,
-    status: raw.status as "Aktif" | "Nonaktif",
+    status: raw.status as UserStatus,
+    avatar_url: raw.avatar_url || undefined,
   };
 }
 

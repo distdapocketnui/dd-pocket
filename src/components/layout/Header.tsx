@@ -59,9 +59,17 @@ export default function Header({ onMobileMenu, notifOpen, onNotifToggle, pending
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              {user ? getInitials(user.name) : "?"}
-            </div>
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.name}
+                className="w-9 h-9 rounded-full object-cover border border-gray-200 flex-shrink-0"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                {user ? getInitials(user.name) : "?"}
+              </div>
+            )}
             <div className="hidden sm:block">
               <p className="text-sm font-semibold text-gray-800 leading-tight">{user?.name || "User"}</p>
               {user && (
