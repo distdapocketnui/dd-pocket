@@ -10,6 +10,7 @@ import {
   GitBranch, Camera, Trash2,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
+import imageCompression from "browser-image-compression";
 export default function ProfilPage() {
   const { user, refreshUser } = useAuth();
   const { updateUser, createApproval } = useData();
@@ -155,7 +156,7 @@ export default function ProfilPage() {
     }
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -165,21 +166,32 @@ export default function ProfilPage() {
       return;
     }
 
-    // Validasi ukuran (maks 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setAvatarError("Ukuran file terlalu besar, maksimal 5MB");
-      return;
+    try {
+      setAvatarError("");
+      setUploadingAvatar(true);
+
+      // Kompres gambar
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 500,
+        initialQuality: 0.8,
+        useWebWorker: true,
+      });
+
+      setAvatarFile(compressedFile);
+
+      // Buat preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (err) {
+      setAvatarError("Gagal memproses gambar");
+      console.error(err);
+    } finally {
+      setUploadingAvatar(false);
     }
-
-    setAvatarError("");
-    setAvatarFile(file);
-
-    // Buat preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleRemoveAvatar = async () => {
@@ -195,8 +207,8 @@ export default function ProfilPage() {
         });
       }
 
-      // Update user dengan avatar_url = null
-      await updateUser(user.id, { avatar_url: null });
+      // Update user dengan avatar_url kosong
+      await updateUser(user.id, { avatar_url: "" });
       await refreshUser();
       setAvatarFile(null);
       setAvatarPreview(null);
@@ -382,7 +394,8 @@ export default function ProfilPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}\n                      className="px-3 py-2 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-2 bg-blue-50 text-blue-600 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors flex items-center gap-1.5"
                     >
                       <Camera size={14} />
                       {avatarPreview ? "Ganti Foto" : "Upload Foto"}
