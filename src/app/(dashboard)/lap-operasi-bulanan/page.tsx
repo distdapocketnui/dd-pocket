@@ -41,7 +41,6 @@ const OPERATION_CATEGORIES = [
 export default function LaporanOperasiSdPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { data } = useData();
 
   // Proteksi route: redirect ke dashboard jika role tidak punya akses
   useEffect(() => {
