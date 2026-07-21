@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           hour: "2-digit", minute: "2-digit",
         }),
         details,
-      });
+      } as any);
     } catch { /* silently fail */ }
   }, []);
 
