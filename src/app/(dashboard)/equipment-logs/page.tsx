@@ -208,8 +208,18 @@ export default function EquipmentLogsPage() {
 
 
 
+  // Cek apakah user boleh edit/hapus log tertentu
+  const canModifyLog = (log: EquipmentLogWithDetails) =>
+    canEdit && (isAdmin || log.created_by.trim().toLowerCase() === (user?.name || "").trim().toLowerCase());
+
   // Handle save (add/edit)
   const handleSave = async () => {
+    if (editing && !canModifyLog(editing)) {
+      alert("Anda hanya dapat mengedit log yang Anda input.");
+      setShowForm(false);
+      resetForm();
+      return;
+    }
     if (!selectedEquipment) {
       alert("Pilih equipment");
       return;
@@ -218,8 +228,8 @@ export default function EquipmentLogsPage() {
       alert("Tanggal & jam wajib diisi");
       return;
     }
-    if (eventType === "STOP" && !reason.trim()) {
-      alert("Alasan stop wajib diisi");
+    if ((eventType === "STOP" || eventType === "HEATING_UP") && !reason.trim()) {
+      alert("Alasan wajib diisi");
       return;
     }
 
@@ -247,7 +257,7 @@ export default function EquipmentLogsPage() {
         equipment_id: selectedEquipment,
         event_type: resolvedEventType,
         timestamp: timestamp,
-        reason: eventType === "STOP" ? reason.trim() : null,
+        reason: (eventType === "STOP" || eventType === "HEATING_UP") ? reason.trim() : null,
         shift: shift,
         update_beban_pln: updateBebanPln ? parseFloat(updateBebanPln) : null,
         update_beban_btg: updateBebanBtg ? parseFloat(updateBebanBtg) : null,
@@ -257,6 +267,11 @@ export default function EquipmentLogsPage() {
         main2: main2Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main2 || "") : null,
         main3: main3Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main3 || "") : null,
       };
+
+      // Preserve original created_by saat editing
+      if (editing) {
+        payload.created_by = editing.created_by;
+      }
 
       // Semua role langsung simpan untuk tambah/edit
       if (editing) {
@@ -279,21 +294,29 @@ export default function EquipmentLogsPage() {
 
   // Handle delete
   const handleDelete = async (id: number) => {
+    const log = logs.find(l => l.id === id);
+    if (!log) {
+      alert("Log tidak ditemukan.");
+      setConfirmDelete(null);
+      return;
+    }
+    if (!canModifyLog(log)) {
+      alert("Anda hanya dapat menghapus log yang Anda input.");
+      setConfirmDelete(null);
+      return;
+    }
     if (!isAdmin) {
       // Non-admin perlu approval untuk hapus
-      const log = logs.find(l => l.id === id);
-      if (log) {
-        setPendingApproval({
-          table_name: "equipment_logs",
-          record_id: id,
-          action_type: "delete",
-          old_data: log,
-          new_data: null,
-        });
-        setShowCutiDialog(true);
-        setConfirmDelete(null);
-        return;
-      }
+      setPendingApproval({
+        table_name: "equipment_logs",
+        record_id: id,
+        action_type: "delete",
+        old_data: log,
+        new_data: null,
+      });
+      setShowCutiDialog(true);
+      setConfirmDelete(null);
+      return;
     }
     
     // Admin langsung hapus
@@ -349,8 +372,8 @@ export default function EquipmentLogsPage() {
       alert("Tanggal & jam wajib diisi");
       return;
     }
-    if (eventType === "STOP" && !reason.trim()) {
-      alert("Alasan stop wajib diisi");
+    if ((eventType === "STOP" || eventType === "HEATING_UP") && !reason.trim()) {
+      alert("Alasan wajib diisi");
       return;
     }
 
@@ -382,7 +405,7 @@ export default function EquipmentLogsPage() {
         equipment_id: selectedEquipment,
         event_type: resolvedEventType,
         timestamp: timestamp,
-        reason: eventType === "STOP" ? reason.trim() : null,
+        reason: (eventType === "STOP" || eventType === "HEATING_UP") ? reason.trim() : null,
         shift: shift,
         update_beban_pln: updateBebanPln ? parseFloat(updateBebanPln) : null,
         update_beban_btg: updateBebanBtg ? parseFloat(updateBebanBtg) : null,
@@ -434,6 +457,10 @@ export default function EquipmentLogsPage() {
 
   // Open edit form
   const openEdit = (log: EquipmentLogWithDetails) => {
+    if (!canModifyLog(log)) {
+      alert("Anda hanya dapat mengedit log yang Anda input.");
+      return;
+    }
     setEditing(log);
     setSelectedEquipment(log.equipment_id);
     setEquipmentLocked(true);
@@ -625,27 +652,28 @@ export default function EquipmentLogsPage() {
         </button>
       ),
     },
-    ...(isAdmin ? [{
+    ...(canEdit ? [{
       key: "actions" as const,
       header: "Aksi",
-      render: (log: EquipmentLogWithDetails) => (
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => openEdit(log)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-            title="Edit"
-          >
-            <Edit3 size={15} />
-          </button>
-          <button
-            onClick={() => setConfirmDelete(log.id)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
-            title="Hapus"
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
-      ),
+      render: (log: EquipmentLogWithDetails) =>
+        canModifyLog(log) ? (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => openEdit(log)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+              title="Edit"
+            >
+              <Edit3 size={15} />
+            </button>
+            <button
+              onClick={() => setConfirmDelete(log.id)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
+              title="Hapus"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        ) : null,
     }] : []),
   ];
 
@@ -1052,13 +1080,14 @@ export default function EquipmentLogsPage() {
                 />
               </div>
 
-              {/* Reason (only for STOP) */}
-              {eventType === "STOP" && (
+              {/* Reason (only for STOP / HEATING_UP) */}
+              {(eventType === "STOP" || eventType === "HEATING_UP") && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Stop *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alasan *</label>
                   <textarea
                     value={reason}
                     disabled={!!editing}
+                    onChange={(e) => setReason(e.target.value)}
                     rows={3}
                     className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none"
                     placeholder="Contoh: Maintenance, Breakdown, No Material, dll"
@@ -1313,10 +1342,10 @@ export default function EquipmentLogsPage() {
                 />
               </div>
 
-              {/* Reason (only for STOP) */}
-              {eventType === "STOP" && (
+              {/* Reason (only for STOP / HEATING_UP) */}
+              {(eventType === "STOP" || eventType === "HEATING_UP") && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Stop *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alasan *</label>
                   <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}

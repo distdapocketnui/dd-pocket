@@ -6,8 +6,9 @@ import { useData } from "@/context/DataContext";
 import { useAuth } from "@/context/AuthContext";
 import DataTable from "@/components/ui/DataTable";
 import Modal from "@/components/ui/Modal";
+import ImageGallery from "@/components/ui/ImageGallery";
 import { User, UserRole, UserStatus } from "@/types";
-import { getInitials, roleBadgeClass, statusUserBadgeClass, statusUserDotClass } from "@/lib/utils";
+import { getInitials, roleBadgeClass } from "@/lib/utils";
 import { Plus, Eye, EyeOff, CheckCircle, X, KeyRound, AlertTriangle } from "lucide-react";
 import { verifyPassword } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/route-protection";
@@ -139,6 +140,17 @@ export default function PenggunaPage() {
   };
 
   const columns = [
+    {
+      key: "avatar_url", header: "Foto Profil", render: (u: User) => (
+        u.avatar_url ? (
+          <ImageGallery images={[u.avatar_url]} />
+        ) : (
+          <div className="w-14 h-14 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center">
+            <span className="text-xs text-gray-300">—</span>
+          </div>
+        )
+      ),
+    },
     {
       key: "name", header: "Nama Lengkap", render: (u: User) => (
         <div className="flex items-center gap-2.5">
