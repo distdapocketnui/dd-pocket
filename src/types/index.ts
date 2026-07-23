@@ -16,6 +16,7 @@ export interface SwitchGear {
   name: string;
   location: string;
   unit: string;
+  equipment: string;
   status: SGStatus;
   pic: string;
   requester: string;

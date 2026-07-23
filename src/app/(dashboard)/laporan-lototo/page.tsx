@@ -37,6 +37,8 @@ export default function LaporanHarianPage() {
   const isSupervisor = hasRole("Supervisor");
   const isOperator = hasRole("Operator");
   const isVisitor = user?.role === "Visitor";
+  const isManager = user?.role === "Manager";
+  const canEdit = !isVisitor && !isManager && (isAdmin || isSupervisor || isOperator);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [selectedUnit, setSelectedUnit] = useState("Semua");
@@ -77,9 +79,9 @@ export default function LaporanHarianPage() {
   const handleDownloadPdf = () => {
     const periodLabel = formatPeriod(startDate, endDate);
 
-    const columns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
+    const columns = ["Switch Gear", "Lokasi", "Peralatan", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
     const rows = pdfData.map((s) => [
-      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
+      s.name, s.location, s.equipment || "-", s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
     ]);
 
     const statusIdx = columns.indexOf("Status");
@@ -108,7 +110,7 @@ export default function LaporanHarianPage() {
     const now = new Date().toLocaleString("id-ID", {
       year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
     });
-    const message = `--------------------------------\n*Laporan Lototo*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Switch Gear :* _${s.name}_\n*Lokasi :* _${s.location}_\n*Unit :* _${s.unit}_\n*Status :* _${s.status}_\n*PIC :* _${s.pic}_\n*No. Notif :* _${s.notifNo || "-"}_\n*No. Lototo :* _${s.lototoNo || "-"}_\n*Peminta :* _${s.requester}_\n*Waktu Aktif :* _${s.activeTime}_\n*Waktu Selesai :* _${s.finishTime || "-"}_\n*Keterangan :* _${s.description || "-"}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
+    const message = `--------------------------------\n*Laporan Lototo*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Switch Gear :* _${s.name}_\n*Lokasi :* _${s.location}_\n*Peralatan :* _${s.equipment || "-"}_\n*Unit :* _${s.unit}_\n*Status :* _${s.status}_\n*PIC :* _${s.pic}_\n*No. Notif :* _${s.notifNo || "-"}_\n*No. Lototo :* _${s.lototoNo || "-"}_\n*Peminta :* _${s.requester}_\n*Waktu Aktif :* _${s.activeTime}_\n*Waktu Selesai :* _${s.finishTime || "-"}_\n*Keterangan :* _${s.description || "-"}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
@@ -168,6 +170,7 @@ export default function LaporanHarianPage() {
   const columns = [
     { key: "name", header: "Switch Gear", render: (s: SwitchGear) => <span className="font-semibold">{s.name}</span> },
     { key: "location", header: "Lokasi", render: (s: SwitchGear) => s.location },
+    { key: "equipment", header: "Peralatan", render: (s: SwitchGear) => s.equipment || <span className="text-xs text-gray-300">—</span> },
     { key: "unit", header: "Unit", render: (s: SwitchGear) => s.unit },
     { key: "status", header: "Status", render: (s: SwitchGear) => <StatusBadge status={s.status} /> },
     { key: "pic", header: "PIC", render: (s: SwitchGear) => s.pic },

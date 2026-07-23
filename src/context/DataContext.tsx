@@ -47,6 +47,7 @@ function mapSG(row: any): SwitchGear {
     name: row.name,
     location: row.location || "",
     unit: row.unit || "",
+    equipment: row.equipment || "",
     status: row.status,
     pic: row.pic || "",
     requester: row.requester || "",
@@ -183,6 +184,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         name: data.name,
         location: data.location,
         unit: data.unit,
+        equipment: data.equipment,
         status: data.status,
         pic: data.pic,
         requester: data.requester,
@@ -231,6 +233,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (data.lototoNo !== undefined) updateData.lototo_no = data.lototoNo;
       if (data.image !== undefined) updateData.image = data.image;
       if (data.images !== undefined) updateData.images = data.images;
+      if (data.equipment !== undefined) updateData.equipment = data.equipment;
       if (data.description !== undefined) updateData.description = data.description;
       if (data.alasan_stop !== undefined) updateData.alasan_stop = data.alasan_stop;
 
@@ -507,6 +510,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             pic: "pic", requester: "requester", activeTime: "active_time",
             finishTime: "finish_time",
             notifNo: "notif_no", lototoNo: "lototo_no", image: "image", description: "description",
+            alasan_stop: "alasan_stop", equipment: "equipment",
           };
 
           for (const [camel, snake] of Object.entries(fieldMap)) {
@@ -584,6 +588,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             pic: "pic", requester: "requester", activeTime: "active_time",
             finishTime: "finish_time",
             notifNo: "notif_no", lototoNo: "lototo_no", image: "image", description: "description",
+            alasan_stop: "alasan_stop", equipment: "equipment",
           };
           const insertPayload: Record<string, any> = {};
           for (const [camel, snake] of Object.entries(fieldMap)) {

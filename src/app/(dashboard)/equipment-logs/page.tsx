@@ -30,6 +30,7 @@ export default function EquipmentLogsPage() {
   const router = useRouter();
   const canEdit = hasRole("Admin", "Supervisor", "Operator");
   const isAdmin = hasRole("Admin");
+  const isManager = user?.role === "Manager";
 
   // Proteksi route: redirect ke dashboard jika role tidak punya akses
   useEffect(() => {
@@ -489,6 +490,7 @@ export default function EquipmentLogsPage() {
 
   // Open confirm dialog from card click
   const openConfirmDialog = (eq: Equipment) => {
+    if (!canEdit) return;
     setConfirmAction(eq);
   };
 
@@ -638,7 +640,7 @@ export default function EquipmentLogsPage() {
     { key: "reason", header: "Alasan", render: (log: EquipmentLogWithDetails) => log.reason || "-" },
     { key: "shift", header: "Shift", render: (log: EquipmentLogWithDetails) => log.shift || "-" },
     { key: "created_by", header: "Dibuat Oleh", render: (log: EquipmentLogWithDetails) => log.created_by },
-    {
+    ...(!isManager ? [{
       key: "whatsapp" as const,
       header: "Kirim WA",
       render: (log: EquipmentLogWithDetails) => (
@@ -651,7 +653,7 @@ export default function EquipmentLogsPage() {
           Kirim
         </button>
       ),
-    },
+    }] : []),
     ...(canEdit ? [{
       key: "actions" as const,
       header: "Aksi",
@@ -805,8 +807,8 @@ export default function EquipmentLogsPage() {
                   return (
                     <div 
                       key={eq.id} 
-                      className={`rounded-xl shadow-sm border px-4 py-3 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow ${cardBg}`}
-                      onClick={() => openConfirmDialog(eq)}
+                      className={`rounded-xl shadow-sm border px-4 py-3 flex items-center justify-between transition-shadow ${canEdit ? "cursor-pointer hover:shadow-md" : "cursor-default"} ${cardBg}`}
+                      onClick={canEdit ? () => openConfirmDialog(eq) : undefined}
                       style={{ position: 'relative', overflow: 'hidden' }}
                     >
                       {posisiPower && (

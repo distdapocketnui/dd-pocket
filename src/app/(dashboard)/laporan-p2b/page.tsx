@@ -146,6 +146,7 @@ export default function LaporanP2BPage() {
   const canViewAllData = hasRole("Admin", "Supervisor", "Operator", "Manager");
   const isAdmin = hasRole("Admin");
   const isVisitor = user?.role === "Visitor";
+  const isManager = user?.role === "Manager";
   const userRegu = user?.regu || "";
 
   // Proteksi route: redirect ke dashboard jika role tidak punya akses
@@ -633,7 +634,7 @@ export default function LaporanP2BPage() {
     gambarCol,
     namaCol,
     reguCol,
-    waCol,
+    ...(!isManager ? [waCol] : []),
     ...aksiCol,
   ];
 
@@ -649,7 +650,7 @@ export default function LaporanP2BPage() {
     gambarCol,
     namaCol,
     reguCol,
-    waCol,
+    ...(!isManager ? [waCol] : []),
     ...aksiCol,
   ];
 
@@ -662,7 +663,7 @@ export default function LaporanP2BPage() {
     gambarCol,
     namaCol,
     reguCol,
-    waCol,
+    ...(!isManager ? [waCol] : []),
     ...aksiCol,
   ];
 

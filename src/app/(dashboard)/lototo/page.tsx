@@ -19,6 +19,7 @@ import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, toDatetimeLocal, getCurrentDatetimeLocal } from "@/lib/date";
 import SupervisorCutiDialog from "@/components/ui/SupervisorCutiDialog";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { getEquipment, type Equipment } from "@/lib/equipment-api";
 
 
 /** Ambil URL gambar dari field images (JSON) atau image (single) */
@@ -29,6 +30,31 @@ function getImages(item: SwitchGear): string[] {
   } catch {
     return item.image ? [item.image] : [];
   }
+}
+
+function EquipmentDropdown({ equipment, value, onChange, unit, className }: { equipment: Equipment[]; value: string; onChange: (v: string) => void; unit: string; className?: string }) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? value.split(", ").filter(Boolean) : [];
+  const available = equipment.filter(e => !unit || e.unit === unit);
+  const toggle = (name: string) => {
+    const next = selected.includes(name) ? selected.filter(v => v !== name) : [...selected, name];
+    onChange(next.join(", "));
+  };
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(!open)} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm text-left outline-none transition-all ${className || "border-gray-200 bg-gray-50"}`}>
+        {selected.length > 0 ? <span className="text-gray-900">{selected.length} peralatan dipilih</span> : <span className="text-gray-400">Pilih Peralatan...</span>}
+        <span className="float-right">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && <>
+        <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+        <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto border border-gray-200 rounded-xl bg-white shadow-lg p-1.5 space-y-0.5">
+          {available.map(e => <label key={e.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-50 cursor-pointer text-sm"><input type="checkbox" checked={selected.includes(e.name)} onChange={() => toggle(e.name)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />{e.name}</label>)}
+          {available.length === 0 && <span className="block px-2.5 py-1.5 text-sm text-gray-400">Tidak ada peralatan</span>}
+        </div>
+      </>}
+    </div>
+  );
 }
 
 function PicDropdown({ users, value, onChange, className }: { users: { id: number; name: string; regu?: string }[]; value: string; onChange: (v: string) => void; className?: string }) {
@@ -80,7 +106,7 @@ export default function LototoPage() {
   const isOperator = user?.role === "Operator" || user?.role === "Supervisor";
   const isDayshiftOperator = user?.role === "Operator" && user?.regu === "Dayshift";
   const isVisitor = user?.role === "Visitor";
-  const canEdit = hasRole("Admin", "Supervisor") || (hasRole("Operator") && !isDayshiftOperator);
+  const canEdit = !isVisitor && (hasRole("Admin", "Supervisor") || (hasRole("Operator") && !isDayshiftOperator));
   const canDirect = hasRole("Admin");
 
   // Proteksi route: redirect ke dashboard jika role tidak punya akses
@@ -104,14 +130,15 @@ export default function LototoPage() {
   } | null>(null);
   const [showCutiDialog, setShowCutiDialog] = useState(false);
   const [picUsers, setPicUsers] = useState<{ id: number; name: string }[]>([]);
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
 
   const [form, setForm] = useState<{
-    name: string; location: string; unit: string; status: SGStatus;
+    name: string; location: string; unit: string; equipment: string; status: SGStatus;
     pic: string; requester: string; notifNo: string; lototoNo: string;
     description: string; alasan_stop: string; image: string; images: string[];
     activeTime: string; finishTime: string;
   }>({
-    name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
+    name: "", location: "", unit: "Tonasa 2/3", equipment: "", status: "Aktif Lototo",
     pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", alasan_stop: "", image: "", images: [],
     activeTime: "", finishTime: "",
   });
@@ -142,6 +169,17 @@ export default function LototoPage() {
       if (data) setPicUsers(data);
     };
     fetchPicUsers();
+
+    // Fetch equipment list for Peralatan dropdown
+    const fetchEquipmentList = async () => {
+      try {
+        const data = await getEquipment(true);
+        setEquipmentList(data);
+      } catch (err) {
+        console.error('fetch equipment error', err);
+      }
+    };
+    fetchEquipmentList();
   }, []);
 
   const handleDownloadPdf = () => {
@@ -161,7 +199,7 @@ export default function LototoPage() {
   const openAdd = () => {
     setEditId(null);
     setForm({
-      name: "", location: "", unit: "Tonasa 2/3", status: "Aktif Lototo",
+      name: "", location: "", unit: "Tonasa 2/3", equipment: "", status: "Aktif Lototo",
       pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", alasan_stop: "", image: "", images: [],
       activeTime: getCurrentDatetimeLocal(), finishTime: "",
     });
@@ -171,7 +209,7 @@ export default function LototoPage() {
   const openEdit = (sg: SwitchGear) => {
     setEditId(sg.id);
     setForm({
-      name: sg.name, location: sg.location, unit: sg.unit, status: sg.status,
+      name: sg.name, location: sg.location, unit: sg.unit, equipment: sg.equipment || "", status: sg.status,
       pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
       description: sg.description, alasan_stop: sg.alasan_stop || "", image: sg.image || "",
       images: getImages(sg),
@@ -261,6 +299,7 @@ export default function LototoPage() {
   const columns = [
     { key: "name", header: "Switch Gear", render: (s: SwitchGear) => <span className="font-semibold">{s.name}</span> },
     { key: "location", header: "Lokasi", render: (s: SwitchGear) => s.location },
+    { key: "equipment", header: "Peralatan", render: (s: SwitchGear) => s.equipment || <span className="text-xs text-gray-300">—</span> },
     { key: "unit", header: "Unit", render: (s: SwitchGear) => s.unit },
     { key: "status", header: "Status", render: (s: SwitchGear) => <StatusBadge status={s.status} /> },
     { key: "pic", header: "PIC", render: (s: SwitchGear) => s.pic },
@@ -389,16 +428,22 @@ export default function LototoPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
-              <select value={form.status} onChange={(e) => { const v = e.target.value as "Aktif Lototo" | "Maintenance" | "Selesai"; setForm({ ...form, status: v, finishTime: v !== "Selesai" ? "" : form.finishTime }); }} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
-                form.status === "Aktif Lototo" ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/20" :
-                form.status === "Maintenance" ? "border-amber-400 bg-amber-50 focus:border-amber-500 focus:ring-amber-500/20" :
-                form.status === "Selesai" ? "border-emerald-400 bg-emerald-50 focus:border-emerald-500 focus:ring-emerald-500/20" :
-                "border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500/10"
-              }`}>
-                <option value="Aktif Lototo">Aktif Lototo (Rack-Out)</option><option value="Maintenance">Maintenance</option><option value="Selesai">Selesai (Rack-In)</option>
-              </select>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Peralatan</label>
+              <EquipmentDropdown equipment={equipmentList} value={form.equipment} unit={form.unit} onChange={(v) => setForm({ ...form, equipment: v })} className={softBorderClass} />
             </div>
+          </div>
+
+          {/* Status — full width */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
+            <select value={form.status} onChange={(e) => { const v = e.target.value as "Aktif Lototo" | "Maintenance" | "Selesai"; setForm({ ...form, status: v, finishTime: v !== "Selesai" ? "" : form.finishTime }); }} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
+              form.status === "Aktif Lototo" ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/20" :
+              form.status === "Maintenance" ? "border-amber-400 bg-amber-50 focus:border-amber-500 focus:ring-amber-500/20" :
+              form.status === "Selesai" ? "border-emerald-400 bg-emerald-50 focus:border-emerald-500 focus:ring-emerald-500/20" :
+              "border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-blue-500/10"
+            }`}>
+              <option value="Aktif Lototo">Aktif Lototo (Rack-Out)</option><option value="Maintenance">Maintenance</option><option value="Selesai">Selesai (Rack-In)</option>
+            </select>
           </div>
 
           {/* Waktu Aktif */}
@@ -450,8 +495,8 @@ export default function LototoPage() {
             </div>
           </div>
           <div className="disabled:opacity-60 disabled:bg-gray-50">
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop</label>
-            <textarea value={form.alasan_stop} disabled={!!editId} onChange={(e) => setForm({ ...form, alasan_stop: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500 min-h-[70px]`} placeholder="Alasan menghentikan pekerjaan..." />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop *</label>
+            <textarea value={form.alasan_stop} required disabled={!!editId} onChange={(e) => setForm({ ...form, alasan_stop: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500 min-h-[70px]`} placeholder="Alasan menghentikan pekerjaan..." />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>

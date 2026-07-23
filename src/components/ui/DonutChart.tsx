@@ -79,6 +79,12 @@ export default function DonutChart({ aktif, maintenance, selesai, mode = "full" 
         responsive: true,
         maintainAspectRatio: false,
         cutout: "72%",
+        animation: {
+          animateRotate: true,
+          animateScale: true,
+          duration: 1200,
+          easing: "easeOutQuart",
+        },
         plugins: {
           legend: { display: false },
           tooltip: {

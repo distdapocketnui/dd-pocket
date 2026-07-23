@@ -3,11 +3,12 @@ export const ROUTE_ACCESS: Record<string, string[]> = {
   "/laporan-p2b": ["Admin", "Supervisor", "Operator", "Manager"],
   "/pengguna": ["Admin"],
   "/database-status": ["Admin"],
-  "/sg-maintenance": ["Admin", "Supervisor", "Operator"],
-  "/lototo": ["Admin", "Supervisor", "Operator"],
+  "/sg-maintenance": ["Admin", "Supervisor", "Operator", "Manager", "Visitor"],
+  "/lototo": ["Admin", "Supervisor", "Operator", "Manager", "Visitor"],
+  "/laporan-lototo": ["Admin", "Supervisor", "Operator", "Manager", "Visitor"],
   "/lap-operasi-harian": ["Admin", "Supervisor", "Operator", "Manager"],
   "/lap-operasi-bulanan": ["Admin", "Supervisor", "Operator", "Manager"],
-  "/dashboard": ["Admin", "Supervisor", "Operator", "Manager"],
+  "/dashboard": ["Admin", "Supervisor", "Operator", "Manager", "Visitor"],
   "/profil": ["Admin", "Supervisor", "Operator", "Manager"],
 };
 
