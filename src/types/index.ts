@@ -59,6 +59,7 @@ export interface ChangeApproval {
   target_supervisor_id: number | null;
   reviewed_by: number | null;
   review_notes: string;
+  reason: string;
   created_at: string;
   updated_at: string;
 }

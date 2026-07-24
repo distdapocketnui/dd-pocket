@@ -7,8 +7,8 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 
 interface Props {
   labels: string[];
-  data: number[];
-  label?: string;
+  data: number[] | number[][];
+  label?: string | string[];
   colors?: string[];
 }
 
@@ -32,21 +32,34 @@ export default function BarChart({ labels, data, label = "Jumlah", colors = DEFA
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
 
-    chartRef.current = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
+    // Handle both single and multiple datasets
+    const datasets = Array.isArray(data[0])
+      ? (data as number[][]).map((dataset, idx) => ({
+          label: Array.isArray(label) ? label[idx] : `${label} ${idx + 1}`,
+          data: dataset,
+          backgroundColor: colors[idx] || DEFAULT_COLORS[idx % DEFAULT_COLORS.length],
+          borderColor: (colors[idx] || DEFAULT_COLORS[idx % DEFAULT_COLORS.length]).replace("0.8", "1"),
+          borderWidth: 1,
+          borderRadius: 6,
+          barPercentage: 0.6,
+        }))
+      : [
           {
-            label,
-            data,
+            label: Array.isArray(label) ? label[0] : label,
+            data: data as number[],
             backgroundColor: colors,
             borderColor: colors.map((c) => c.replace("0.8", "1")),
             borderWidth: 1,
             borderRadius: 6,
             barPercentage: 0.6,
           },
-        ],
+        ];
+
+    chartRef.current = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets,
       },
       options: {
         responsive: true,

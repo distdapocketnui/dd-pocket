@@ -94,6 +94,7 @@ function mapApproval(row: any): ChangeApproval {
     target_supervisor_id: row.target_supervisor_id ?? null,
     reviewed_by: row.reviewed_by,
     review_notes: row.review_notes || "",
+    reason: row.reason || "",
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

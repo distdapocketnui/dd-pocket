@@ -217,19 +217,23 @@ export default function LaporanHarianPage() {
     }] : (isOperator || isSupervisor) ? [{
       key: "actions" as const,
       header: "Aksi",
-      render: (s: SwitchGear) => (
-        <div className="flex items-center gap-1">
-          {s.status === "Selesai" && (
-            <button
-              onClick={() => openEdit(s)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-              title="Edit"
-            >
-              <Edit3 size={15} />
-            </button>
-          )}
-        </div>
-      ),
+      render: (s: SwitchGear) => {
+        const canEdit = s.requester === user?.name;
+        return (
+          <div className="flex items-center gap-1">
+            {s.status === "Selesai" && canEdit && (
+              <button
+                onClick={() => openEdit(s)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                title="Edit"
+              >
+                <Edit3 size={15} />
+              </button>
+            )}
+            {!canEdit && <span className="text-xs text-gray-300">—</span>}
+          </div>
+        );
+      },
     }] : []),
   ];
 
@@ -348,7 +352,7 @@ export default function LaporanHarianPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">No. Lototo</label>
-                  <input type="text" value={editForm.lototoNo || ""} onChange={(e) => setEditForm({ ...editForm, lototoNo: e.target.value })} className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                  <input type="text" value={editForm.lototoNo || ""} disabled className="w-full px-3.5 py-2.5 border-2 border-gray-100 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed" />
                 </div>
               </div>
               <div>
@@ -357,7 +361,7 @@ export default function LaporanHarianPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop</label>
-                <input type="text" value={editForm.alasan_stop || ""} onChange={(e) => setEditForm({ ...editForm, alasan_stop: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                <input type="text" value={editForm.alasan_stop || ""} disabled className="w-full px-3.5 py-2.5 border-2 border-gray-100 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>
@@ -412,7 +416,7 @@ export default function LaporanHarianPage() {
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop</label>
-                <input type="text" value={editForm.alasan_stop || ""} onChange={(e) => setEditForm({ ...editForm, alasan_stop: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+                <input type="text" value={editForm.alasan_stop || ""} disabled className="w-full px-3.5 py-2.5 border-2 border-gray-100 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>

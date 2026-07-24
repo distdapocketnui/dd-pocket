@@ -217,6 +217,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           </div>
                           <p className="text-[11px] text-gray-500 mt-1">
                             oleh <span className="font-medium text-gray-600">{a.requested_by_name}</span>
+                            {a.created_at && (
+                              <span className="text-gray-400 ml-1">• {new Date(a.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                            )}
                           </p>
                           {(a.action_type === "edit" || a.action_type === "create") && a.new_data && (
                             <div className="mt-1.5 space-y-0.5">
@@ -250,11 +253,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           {a.action_type === "delete" && a.old_data && (
                             <div className="mt-1.5 space-y-0.5">
                               {a.old_data.name && <p className="text-xs text-gray-400">SG: {a.old_data.name}</p>}
+                              {a.old_data.equipment && <p className="text-xs text-gray-400">Peralatan: {a.old_data.equipment}</p>}
                               {a.old_data.status && <span className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                                 a.old_data.status === "Aktif Lototo" ? "bg-red-50/90 text-red-700" :
                                 a.old_data.status === "Maintenance" ? "bg-amber-50/90 text-amber-700" :
                                 "bg-emerald-50/90 text-emerald-700"
                               }`}>{a.old_data.status}</span>}
+                              {a.reason && (
+                                <div className="mt-1.5 p-2 bg-red-50 border border-red-100 rounded-lg">
+                                  <p className="text-[10px] font-medium text-red-700">Alasan Hapus: {a.reason}</p>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -312,6 +321,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           </div>
                           {a.new_data?.name && <p className="text-xs text-gray-400 mt-1">SG: {a.new_data.name}</p>}
                           {a.old_data?.name && a.action_type === "delete" && <p className="text-xs text-gray-400 mt-1">SG: {a.old_data.name}</p>}
+                          {a.old_data?.equipment && a.action_type === "delete" && <p className="text-xs text-gray-400">Peralatan: {a.old_data.equipment}</p>}
+                          {a.reason && a.action_type === "delete" && (
+                            <div className="mt-1.5 p-2 bg-red-50 border border-red-100 rounded-lg">
+                                  <p className="text-[10px] font-medium text-red-700">Alasan Hapus: {a.reason}</p>
+                                </div>
+                          )}
                           {a.review_notes && (
                             <p className="text-[11px] text-gray-500 mt-1 italic">Catatan: {a.review_notes}</p>
                           )}

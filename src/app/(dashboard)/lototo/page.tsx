@@ -128,6 +128,8 @@ export default function LototoPage() {
     old_data: Record<string, any> | null;
     new_data: Record<string, any> | null;
   } | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState<{ sg: SwitchGear } | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
   const [showCutiDialog, setShowCutiDialog] = useState(false);
   const [picUsers, setPicUsers] = useState<{ id: number; name: string }[]>([]);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
@@ -210,7 +212,8 @@ export default function LototoPage() {
     setEditId(sg.id);
     setForm({
       name: sg.name, location: sg.location, unit: sg.unit, equipment: sg.equipment || "", status: sg.status,
-      pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
+      pic: "", // Reset PIC saat edit - user harus memilih kembali
+      requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
       description: sg.description, alasan_stop: sg.alasan_stop || "", image: sg.image || "",
       images: getImages(sg),
       activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
@@ -220,25 +223,13 @@ export default function LototoPage() {
   };
 
   const handleDelete = (sg: SwitchGear) => {
-    if (confirm("Yakin ingin menghapus switch gear ini?")) {
-      if (isOperator) {
-        setPendingApproval({
-          table_name: "switch_gears",
-          record_id: sg.id,
-          action_type: "delete",
-          old_data: sg,
-          new_data: null,
-        });
-        setShowCutiDialog(true);
-      } else {
-        deleteSwitchGear(sg.id);
-      }
-    }
+    setShowDeleteModal({ sg });
+    setDeleteReason("");
   };
 
   const handleCutiConfirm = (targetSupervisorId: number | null) => {
     if (pendingApproval) {
-      createApproval({ ...pendingApproval, target_supervisor_id: targetSupervisorId } as any);
+      createApproval({ ...pendingApproval, target_supervisor_id: targetSupervisorId, reason: deleteReason } as any);
       const msg =
         pendingApproval.action_type === "delete"
           ? "Permintaan penghapusan telah dikirim ke Supervisor untuk disetujui."
@@ -253,6 +244,22 @@ export default function LototoPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validasi field wajib (hanya untuk input baru)
+    if (!editId) {
+      if (!form.name) { alert("Nama Switch Gear wajib diisi"); return; }
+      if (!form.location) { alert("Lokasi wajib diisi"); return; }
+      if (!form.unit) { alert("Unit wajib diisi"); return; }
+      if (!form.equipment) { alert("Peralatan wajib diisi"); return; }
+      if (!form.activeTime) { alert("Waktu Aktif wajib diisi"); return; }
+      if (!form.pic) { alert("PIC wajib diisi"); return; }
+      if (!form.requester) { alert("Peminta wajib diisi"); return; }
+    } else {
+      // Validasi untuk edit
+      if (!form.pic) { alert("PIC wajib dipilih"); return; }
+      if (!form.alasan_stop) { alert("Alasan Stop wajib diisi"); return; }
+    }
+
     const payload: any = {
       ...form,
       image: form.images[0] || "",
@@ -412,31 +419,41 @@ export default function LototoPage() {
         <form id="sgForm" onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Switch Gear</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Switch Gear *</label>
               <input type="text" required value={form.name} disabled={!!editId} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`} placeholder="SG-MV-01" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Lokasi</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Lokasi *</label>
               <input type="text" required value={form.location} disabled={!!editId} onChange={(e) => setForm({ ...form, location: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`} placeholder="Area Transformer" />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Unit</label>
-              <select value={form.unit} disabled={!!editId} onChange={(e) => setForm({ ...form, unit: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`}>
-                <option>Tonasa 2/3</option><option>Tonasa 4</option><option>Tonasa 5</option><option>SG Lainnya</option>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Unit *</label>
+              <select required value={form.unit} disabled={!!editId} onChange={(e) => setForm({ ...form, unit: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass} disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500`}>
+                <option value="">Pilih Unit</option><option>Tonasa 2/3</option><option>Tonasa 4</option><option>Tonasa 5</option><option>SG Lainnya</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Peralatan</label>
-              <EquipmentDropdown equipment={equipmentList} value={form.equipment} unit={form.unit} onChange={(v) => setForm({ ...form, equipment: v })} className={softBorderClass} />
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Peralatan *</label>
+              {editId ? (
+                <input
+                  type="text"
+                  value={form.equipment}
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-100 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
+                  placeholder="Nama peralatan"
+                  readOnly
+                />
+              ) : (
+                <EquipmentDropdown equipment={equipmentList} value={form.equipment} unit={form.unit} onChange={(v) => setForm({ ...form, equipment: v })} className={softBorderClass} />
+              )}
             </div>
           </div>
 
           {/* Status — full width */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Status</label>
-            <select value={form.status} onChange={(e) => { const v = e.target.value as "Aktif Lototo" | "Maintenance" | "Selesai"; setForm({ ...form, status: v, finishTime: v !== "Selesai" ? "" : form.finishTime }); }} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
+            <select value={form.status} onChange={(e) => { const v = e.target.value as "Aktif Lototo" | "Maintenance" | "Selesai"; setForm({ ...form, status: v, pic: "", finishTime: v !== "Selesai" ? "" : form.finishTime }); }} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
               form.status === "Aktif Lototo" ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/20" :
               form.status === "Maintenance" ? "border-amber-400 bg-amber-50 focus:border-amber-500 focus:ring-amber-500/20" :
               form.status === "Selesai" ? "border-emerald-400 bg-emerald-50 focus:border-emerald-500 focus:ring-emerald-500/20" :
@@ -448,7 +465,7 @@ export default function LototoPage() {
 
           {/* Waktu Aktif */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Waktu Aktif</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Waktu Aktif *</label>
             <input
               type="datetime-local"
               required
@@ -476,12 +493,29 @@ export default function LototoPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">PIC</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">PIC *</label>
               <PicDropdown users={picUsers} value={form.pic} onChange={(v) => setForm({ ...form, pic: v })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm text-left outline-none transition-all ${softBorderClass}`} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Peminta</label>
-              <input type="text" required value={form.requester} onChange={(e) => setForm({ ...form, requester: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="Nama peminta" />
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Peminta *</label>
+              {editId ? (
+                <input
+                  type="text"
+                  value={form.requester}
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-100 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
+                  placeholder="Nama peminta"
+                  readOnly
+                />
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={form.requester}
+                  onChange={(e) => setForm({ ...form, requester: e.target.value })}
+                  className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`}
+                  placeholder="Nama peminta"
+                />
+              )}
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -514,6 +548,55 @@ export default function LototoPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setShowDeleteModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Hapus data?</h3>
+            <p className="text-sm text-gray-500 mb-4">Apakah Anda yakin untuk menghapus data <span className="font-semibold text-gray-900">{showDeleteModal.sg.equipment}</span> ini?</p>
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Hapus *</label>
+              <textarea
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all min-h-[80px]"
+                placeholder="Jelaskan alasan penghapusan..."
+              />
+            </div>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setShowDeleteModal(null)} className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Tidak</button>
+              <button
+                onClick={() => {
+                  if (!deleteReason.trim()) {
+                    alert("Alasan hapus wajib diisi");
+                    return;
+                  }
+                  const sg = showDeleteModal.sg;
+                  if (isOperator) {
+                    setPendingApproval({
+                      table_name: "switch_gears",
+                      record_id: sg.id,
+                      action_type: "delete",
+                      old_data: sg,
+                      new_data: null,
+                    });
+                    setShowCutiDialog(true);
+                    setShowDeleteModal(null);
+                  } else {
+                    deleteSwitchGear(sg.id);
+                    setShowDeleteModal(null);
+                  }
+                  setDeleteReason("");
+                }}
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+              >
+                YA
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Supervisor Cuti Dialog */}
       <SupervisorCutiDialog

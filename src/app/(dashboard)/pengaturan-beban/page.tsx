@@ -8,7 +8,7 @@ import DataTable from "@/components/ui/DataTable";
 import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, getCurrentDatetimeLocal } from "@/lib/date";
 import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, BarChart3, RefreshCw } from "lucide-react";
-import LineChart from "@/components/ui/LineChart";
+import BarChart from "@/components/ui/BarChart";
 import ImageUpload from "@/components/ui/ImageUpload";
 import ImageGallery from "@/components/ui/ImageGallery";
 import type { LaporanP2B, UnitPengaturan } from "@/types";
@@ -19,8 +19,6 @@ import SupervisorCutiDialog from "@/components/ui/SupervisorCutiDialog";
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Power House", "Power Plant", "Tambang", "Lainnya"];
 const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
 const SHIFT_OPTIONS = ["Shift 1 (Pagi)", "Shift 2 (Sore)", "Shift 3 (Malam)", "Dayshift"];
-const KEGIATAN_OPTIONS = ["Pengaturan Beban"];
-const KONDISI_OPTIONS = ["Normal", "Rusak", "Perbaikan"];
 const LEVEL_TEGANGAN_OPTIONS = ["70 kV", "6,3 kV"];
 
 function UnitPindahDropdown({ unitPengaturan, value, onChange }: { unitPengaturan: UnitPengaturan[]; value: string; onChange: (v: string) => void }) {
@@ -36,7 +34,7 @@ function UnitPindahDropdown({ unitPengaturan, value, onChange }: { unitPengatura
 
   return (
     <div className="relative">
-      <label className="block text-sm font-medium text-gray-700 mb-1">Unit yang Pindah</label>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Unit yang Pindah *</label>
       <button type="button" onClick={() => setOpen(!open)}
         className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm text-left focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
       >
@@ -170,6 +168,8 @@ export default function PengaturanBebanPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [usernameFilter, setUsernameFilter] = useState("");
+  const [lokasiFilter, setLokasiFilter] = useState("");
+  const [levelTeganganFilter, setLevelTeganganFilter] = useState("");
   const [showConfirmDownload, setShowConfirmDownload] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: number; skipped: number; error?: string } | null>(null);
@@ -252,6 +252,8 @@ export default function PengaturanBebanPage() {
       const pics = r.pic ? r.pic.split(", ").filter(Boolean) : [];
       if (!pics.includes(usernameFilter)) return false;
     }
+    if (lokasiFilter && r.lokasi !== lokasiFilter) return false;
+    if (levelTeganganFilter && r.level_tegangan !== levelTeganganFilter) return false;
     if (!canViewAllData && userRegu && userRegu !== "Dayshift" && r.regu !== userRegu) return false;
     return true;
   });
@@ -381,12 +383,32 @@ export default function PengaturanBebanPage() {
       alert("Lokasi wajib diisi");
       return;
     }
+    if (!form.level_tegangan) {
+      alert("Level Tegangan wajib diisi");
+      return;
+    }
     if (!form.posisi_power) {
       alert("Posisi Power wajib diisi");
       return;
     }
+    if (!form.shift) {
+      alert("Shift wajib diisi");
+      return;
+    }
     if (!form.area) {
       alert("Unit/Area wajib diisi");
+      return;
+    }
+    if (!form.unit_pindah) {
+      alert("Unit yang Pindah wajib diisi");
+      return;
+    }
+    if (form.update_beban_pln === "" || form.update_beban_pln === undefined || form.update_beban_pln === null) {
+      alert("Update Beban PLN wajib diisi");
+      return;
+    }
+    if (form.update_beban_btg === "" || form.update_beban_btg === undefined || form.update_beban_btg === null) {
+      alert("Update Beban BTG wajib diisi");
       return;
     }
     if (!form.pic) {
@@ -734,16 +756,31 @@ export default function PengaturanBebanPage() {
 
   const rekapTotal = rekapRows.reduce((sum, r) => sum + r.count, 0);
 
-  // ── Chart: jumlah inputan per nama ──
+  // ── Chart: Statistik Lokasi & Level Tegangan ──
   const chartData = useMemo(() => {
-    const counts: Record<string, number> = {};
+    // Group by lokasi, then count per level tegangan
+    const locationMap = new Map<string, { '70 kV': number; '6,3 kV': number }>();
+    
     filtered.forEach((r) => {
-      const pics = r.pic ? r.pic.split(", ").filter(Boolean) : ["Tanpa PIC"];
-      pics.forEach((pic) => {
-        counts[pic] = (counts[pic] || 0) + 1;
-      });
+      if (!r.lokasi) return;
+      
+      if (!locationMap.has(r.lokasi)) {
+        locationMap.set(r.lokasi, { '70 kV': 0, '6,3 kV': 0 });
+      }
+      
+      const entry = locationMap.get(r.lokasi)!;
+      if (r.level_tegangan === '70 kV') {
+        entry['70 kV']++;
+      } else if (r.level_tegangan === '6,3 kV') {
+        entry['6,3 kV']++;
+      }
     });
-    return { labels: Object.keys(counts), data: Object.values(counts) };
+    
+    const labels = Array.from(locationMap.keys());
+    const data70kV = labels.map(loc => locationMap.get(loc)!['70 kV']);
+    const data63kV = labels.map(loc => locationMap.get(loc)!['6,3 kV']);
+    
+    return { labels, data70kV, data63kV };
   }, [filtered]);
 
   if (isVisitor) return null;
@@ -756,7 +793,7 @@ export default function PengaturanBebanPage() {
         <p className="text-sm text-gray-500 mt-1">Monitoring pengaturan beban harian</p>
       </div>
 
-      {/* Filter Tanggal + Username + PDF */}
+      {/* Filter Tanggal + Username + Lokasi + Level Tegangan + PDF */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-3">
         <div className="hidden lg:flex items-center gap-2">
           <div className="flex items-center gap-2 flex-1">
@@ -786,6 +823,28 @@ export default function PengaturanBebanPage() {
             ))}
           </select>
 
+          <select
+            value={lokasiFilter}
+            onChange={(e) => setLokasiFilter(e.target.value)}
+            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          >
+            <option value="">Semua Lokasi</option>
+            {LOKASI_OPTIONS.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+
+          <select
+            value={levelTeganganFilter}
+            onChange={(e) => setLevelTeganganFilter(e.target.value)}
+            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          >
+            <option value="">Semua Level Tegangan</option>
+            {LEVEL_TEGANGAN_OPTIONS.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+
           <button
             onClick={() => setShowConfirmDownload(true)}
             className="ml-auto px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5"
@@ -812,14 +871,38 @@ export default function PengaturanBebanPage() {
             />
           </div>
 
+          <div className="flex items-center gap-2">
+            <select
+              value={usernameFilter}
+              onChange={(e) => setUsernameFilter(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            >
+              <option value="">Semua User</option>
+              {usernames.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+
+            <select
+              value={lokasiFilter}
+              onChange={(e) => setLokasiFilter(e.target.value)}
+              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            >
+              <option value="">Semua Lokasi</option>
+              {LOKASI_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+
           <select
-            value={usernameFilter}
-            onChange={(e) => setUsernameFilter(e.target.value)}
-            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            value={levelTeganganFilter}
+            onChange={(e) => setLevelTeganganFilter(e.target.value)}
+            className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           >
-            <option value="">Semua User</option>
-            {usernames.map((name) => (
-              <option key={name} value={name}>{name}</option>
+            <option value="">Semua Level Tegangan</option>
+            {LEVEL_TEGANGAN_OPTIONS.map((o) => (
+              <option key={o} value={o}>{o}</option>
             ))}
           </select>
 
@@ -837,9 +920,16 @@ export default function PengaturanBebanPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-4">
         <div className="flex items-center gap-2 mb-3">
           <BarChart3 size={16} className="text-blue-600" />
-          <h3 className="text-sm font-semibold text-gray-700">Statistik Inputan Laporan</h3>
+          <h3 className="text-sm font-semibold text-gray-700">Statistik Lokasi & Level Tegangan</h3>
         </div>
-        <LineChart labels={chartData.labels} data={chartData.data} label="Jumlah Inputan" />
+        <div>
+          <h4 className="text-xs font-medium text-gray-600 mb-2">Jumlah Laporan per Lokasi berdasarkan Level Tegangan</h4>
+          <BarChart 
+            labels={chartData.labels} 
+            data={[chartData.data70kV, chartData.data63kV]} 
+            label={["70 kV", "6,3 kV"]} 
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -933,7 +1023,7 @@ export default function PengaturanBebanPage() {
 
               {/* Level Tegangan */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Level Tegangan</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Level Tegangan *</label>
                 <select value={form.level_tegangan} onChange={(e) => setForm({ ...form, level_tegangan: e.target.value as "" | "70 kV" | "6,3 kV" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
                   <option value="">Pilih Level Tegangan</option>
                   {LEVEL_TEGANGAN_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -961,7 +1051,7 @@ export default function PengaturanBebanPage() {
 
               {/* Shift */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
                 <select
                   value={form.shift}
                   onChange={(e) => setForm({ ...form, shift: e.target.value })}
@@ -984,7 +1074,7 @@ export default function PengaturanBebanPage() {
               {/* Update Beban PLN & BTG — 2 kolom 1 baris */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW) *</label>
                   <input
                     type="number"
                     step="0.1"
@@ -996,7 +1086,7 @@ export default function PengaturanBebanPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW) *</label>
                   <input
                     type="number"
                     step="0.1"
