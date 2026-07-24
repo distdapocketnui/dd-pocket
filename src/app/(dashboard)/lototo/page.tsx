@@ -127,6 +127,7 @@ export default function LototoPage() {
     action_type: "edit" | "delete" | "create";
     old_data: Record<string, any> | null;
     new_data: Record<string, any> | null;
+    reason?: string;
   } | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState<{ sg: SwitchGear } | null>(null);
   const [deleteReason, setDeleteReason] = useState("");
@@ -229,7 +230,7 @@ export default function LototoPage() {
 
   const handleCutiConfirm = (targetSupervisorId: number | null) => {
     if (pendingApproval) {
-      createApproval({ ...pendingApproval, target_supervisor_id: targetSupervisorId, reason: deleteReason } as any);
+      createApproval({ ...pendingApproval, target_supervisor_id: targetSupervisorId } as any);
       const msg =
         pendingApproval.action_type === "delete"
           ? "Permintaan penghapusan telah dikirim ke Supervisor untuk disetujui."
@@ -580,6 +581,7 @@ export default function LototoPage() {
                       action_type: "delete",
                       old_data: sg,
                       new_data: null,
+                      reason: deleteReason,
                     });
                     setShowCutiDialog(true);
                     setShowDeleteModal(null);
