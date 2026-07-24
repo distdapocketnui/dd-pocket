@@ -414,6 +414,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     old_data: Record<string, any> | null;
     new_data: Record<string, any> | null;
     target_supervisor_id?: number | null;
+    reason?: string;
   }) => {
     try {
       const stored = localStorage.getItem("ddp_current_user");
@@ -421,20 +422,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       if (!currentUser) return null;
 
       const supabase = getSupabaseClient();
+      const payload: any = {
+        table_name: data.table_name,
+        record_id: data.record_id,
+        action_type: data.action_type,
+        old_data: data.old_data,
+        new_data: data.new_data,
+        status: "pending",
+        requested_by: currentUser.id,
+        requested_by_name: currentUser.name,
+        regu: currentUser.regu || "",
+        target_supervisor_id: data.target_supervisor_id ?? null,
+        reason: data.reason || "",
+      };
       const { data: inserted, error } = await supabase
         .from("change_approvals")
-        .insert({
-          table_name: data.table_name,
-          record_id: data.record_id,
-          action_type: data.action_type,
-          old_data: data.old_data,
-          new_data: data.new_data,
-          status: "pending",
-          requested_by: currentUser.id,
-          requested_by_name: currentUser.name,
-          regu: currentUser.regu || "",
-          target_supervisor_id: data.target_supervisor_id ?? null,
-        })
+        .insert(payload)
         .select()
         .single();
 
