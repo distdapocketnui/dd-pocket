@@ -449,10 +449,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         "Approval"
       );
 
+      // Format timestamp
+      const now = new Date();
+      const timestamp = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
       // Trigger push notification ke admin/supervisor
       notifyAdminAfterApprovalRequest({
         title: "Approval Baru",
-        body: `${currentUser.name} meminta ${actionLabel.toLowerCase()} pada ${data.table_name}`,
+        body: `${currentUser.name} meminta ${actionLabel.toLowerCase()} pada ${data.table_name} - ${timestamp}`,
         url: "/",
       });
 
@@ -632,10 +636,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       // Refresh data to get latest
       fetchAll();
 
+      // Format timestamp
+      const now = new Date();
+      const timestamp = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      // Format approver info with role
+      const approverInfo = `${currentUser.name} (${currentUser.role})`;
+
       // Trigger push notification ke requester
       notifyUserAfterReview(approval.requested_by_name, {
         title: "Approval Disetujui",
-        body: `${currentUser.name} menyetujui permintaan ${approval.action_type} Anda`,
+        body: `${approverInfo} menyetujui permintaan ${approval.action_type} Anda - ${timestamp}`,
         url: "/",
       });
 
@@ -690,10 +701,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         "Approval"
       );
 
+      // Format timestamp
+      const now = new Date();
+      const timestamp = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+      // Format approver info with role
+      const approverInfo = `${currentUser.name} (${currentUser.role})`;
+
       // Trigger push notification ke requester
       notifyUserAfterReview(approval.requested_by_name, {
         title: "Approval Ditolak",
-        body: `${currentUser.name} menolak permintaan ${approval.action_type} Anda`,
+        body: `${approverInfo} menolak permintaan ${approval.action_type} Anda - ${timestamp}`,
         url: "/",
       });
     } catch (err) {

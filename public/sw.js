@@ -34,7 +34,7 @@ self.addEventListener("activate", (event) => {
 // Push Notification: terima dan tampilkan
 // ──────────────────────────────────────────────
 self.addEventListener("push", (event) => {
-  let data = { title: "DD-Pocket", body: "Ada pembaruan terbaru", icon: "/icons/icon-192x192.png" };
+  let data = { title: "DD-Pocket", body: "Ada pembaruan terbaru", icon: "/logo_NUI.png" };
 
   if (event.data) {
     try {
@@ -48,7 +48,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: data.icon,
+      icon: data.icon || "/logo_NUI.png",
       badge: "/icons/icon-192x192.png",
       tag: data.tag || "dd-pocket-general",
       data: data.url ? { url: data.url } : undefined,

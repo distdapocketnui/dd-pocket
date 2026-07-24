@@ -61,7 +61,9 @@ export default function EquipmentLogsPage() {
   const [main3Checked, setMain3Checked] = useState(false);
   const [posisiPower, setPosisiPower] = useState<"BTG" | "PLN" | "">("");
   const [confirmAction, setConfirmAction] = useState<Equipment | null>(null);
+  const [confirmActionType, setConfirmActionType] = useState<'pengaturan' | 'startstop' | null>(null);
   const [showQuickForm, setShowQuickForm] = useState(false);
+  const [showPengaturanForm, setShowPengaturanForm] = useState(false);
   const [equipmentName, setEquipmentName] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [equipmentLocked, setEquipmentLocked] = useState(false);
@@ -430,6 +432,47 @@ export default function EquipmentLogsPage() {
     }
   };
 
+  // Handle Pengaturan Save (update posisi power & beban without START/STOP validation)
+  const handlePengaturanSave = async () => {
+    if (!selectedEquipment) {
+      alert("Equipment tidak valid");
+      return;
+    }
+    if (!timestamp) {
+      alert("Tanggal & jam wajib diisi");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        equipment_id: selectedEquipment,
+        event_type: eventType || "STOP",
+        timestamp: timestamp,
+        reason: reason || null,
+        shift: shift,
+        update_beban_pln: updateBebanPln ? parseFloat(updateBebanPln) : null,
+        update_beban_btg: updateBebanBtg ? parseFloat(updateBebanBtg) : null,
+        created_by: user?.name || "",
+        posisi_power: posisiPower || null,
+        main1: main1Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main1 || "") : null,
+        main2: main2Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main2 || "") : null,
+        main3: main3Checked ? (equipmentList.find(e => e.id === selectedEquipment)?.main3 || "") : null,
+      };
+
+      await createEquipmentLog(payload);
+
+      setShowPengaturanForm(false);
+      setConfirmAction(null);
+      fetchLogs();
+    } catch (err) {
+      logger.error('save pengaturan error', err);
+      alert("Gagal menyimpan data: " + (err as any)?.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Handle approval dialog confirmation
   const handleCutiConfirm = (targetSupervisorId: number | null) => {
     if (pendingApproval) {
@@ -492,15 +535,20 @@ export default function EquipmentLogsPage() {
   const openConfirmDialog = (eq: Equipment) => {
     if (!canEdit) return;
     setConfirmAction(eq);
+    setConfirmActionType(null);
   };
 
-  // Handle confirm action (Yes/No)
-  const handleConfirmAction = (confirmed: boolean) => {
-    if (confirmed && confirmAction) {
+  // Handle confirm action (Pengaturan/Start-Stop/Tidak)
+  const handleConfirmAction = (type: 'pengaturan' | 'startstop' | null) => {
+    if (!confirmAction) return;
+    
+    setConfirmActionType(type);
+    
+    if (type === 'startstop') {
+      // Start-Stop flow
       setSelectedEquipment(confirmAction.id);
       setEquipmentName(`${confirmAction.name} (${confirmAction.unit})`);
       
-      // Initialize checklist and auto-detect event type from last event
       const eq = equipmentList.find(e => e.id === confirmAction.id);
       if (eq) {
         const equipmentLogs = logs
@@ -525,7 +573,6 @@ export default function EquipmentLogsPage() {
             setEventType("HEATING_UP");
           }
         } else {
-          // No previous log, default to STOP
           setEventType("STOP");
         }
         
@@ -536,7 +583,47 @@ export default function EquipmentLogsPage() {
       }
       
       setShowQuickForm(true);
+    } else if (type === 'pengaturan') {
+      // Pengaturan flow
+      setSelectedEquipment(confirmAction.id);
+      setEquipmentName(`${confirmAction.name} (${confirmAction.unit})`);
+      
+      const eq = equipmentList.find(e => e.id === confirmAction.id);
+      const equipmentLogs = logs
+        .filter(log => log.equipment_id === confirmAction.id)
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      const lastLog = equipmentLogs[0];
+      
+      if (lastLog) {
+        // Prefill from last log
+        setTimestamp(toDatetimeLocal(lastLog.timestamp) || getCurrentDatetimeLocal());
+        setShift(lastLog.shift || "Dayshift");
+        setReason(lastLog.reason || "");
+        setPosisiPower((lastLog.posisi_power as "BTG" | "PLN" | "") || "");
+        setUpdateBebanPln(lastLog.update_beban_pln?.toString() || "");
+        setUpdateBebanBtg(lastLog.update_beban_btg?.toString() || "");
+        setMain1Checked(!!lastLog.main1);
+        setMain2Checked(!!lastLog.main2);
+        setMain3Checked(!!lastLog.main3);
+        setEventType(lastLog.event_type);
+      } else {
+        // No previous log - use equipment defaults
+        setTimestamp(getCurrentDatetimeLocal());
+        setShift("Dayshift");
+        setReason("");
+        setPosisiPower((eq?.posisi_power as "BTG" | "PLN" | "") || "");
+        setUpdateBebanPln("");
+        setUpdateBebanBtg("");
+        setMain1Checked(!!eq?.main1);
+        setMain2Checked(!!eq?.main2);
+        setMain3Checked(!!eq?.main3);
+        setEventType("STOP");
+      }
+      
+      setShowPengaturanForm(true);
     }
+    
     setConfirmAction(null);
   };
 
@@ -1145,14 +1232,30 @@ export default function EquipmentLogsPage() {
 
       {/* Confirm Action Dialog (from card click) */}
       {confirmAction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setConfirmAction(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => { setConfirmAction(null); setConfirmActionType(null); }}>
           <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Update Data?</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Update Data Pengaturan & Start/Stop?</h3>
             <p className="text-sm text-gray-500 mb-2">Equipment: <span className="font-semibold text-gray-900">{confirmAction.name}</span></p>
-            <p className="text-sm text-gray-500 mb-6">Apakah Anda ingin menambahkan data start-stop untuk equipment ini?</p>
-            <div className="flex items-center justify-end gap-3">
-              <button onClick={() => handleConfirmAction(false)} className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Tidak</button>
-              <button onClick={() => handleConfirmAction(true)} className="px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors">Ya</button>
+            <p className="text-sm text-gray-500 mb-6">Apakah Anda ingin menambahkan data Pengaturan/Start-Stop untuk equipment ini?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => handleConfirmAction('pengaturan')}
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+              >
+                Pengaturan
+              </button>
+              <button
+                onClick={() => handleConfirmAction('startstop')}
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors"
+              >
+                Start-Stop
+              </button>
+              <button
+                onClick={() => handleConfirmAction(null)}
+                className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Tidak
+              </button>
             </div>
           </div>
         </div>
@@ -1394,6 +1497,206 @@ export default function EquipmentLogsPage() {
               >
                 {quickSaving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pengaturan Form Modal */}
+      {showPengaturanForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setShowPengaturanForm(false)}>
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <h3 className="text-base font-semibold text-gray-900">Form Pengaturan</h3>
+            </div>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Equipment (Readonly) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Equipment</label>
+                <div className="w-full px-3.5 py-2.5 border-2 border-gray-300 rounded-xl bg-gray-100 text-sm text-gray-600 flex items-center justify-between cursor-not-allowed">
+                  <span>{equipmentName}</span>
+                  <span className="text-gray-400 text-xs ml-2">Locked</span>
+                </div>
+              </div>
+
+              {/* Checklist Main & Event Type — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Checklist Main (Readonly) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Checklist Main</label>
+                  {selectedEquipment && (() => {
+                    const eq = equipmentList.find(e => e.id === selectedEquipment);
+                    if (!eq) return <p className="text-xs text-gray-400">Pilih equipment</p>;
+                    return (
+                      <div className="p-3 rounded-lg border border-gray-200 bg-gray-50">
+                        <div className="flex flex-col gap-2">
+                          {eq.main1 && (
+                            <label className="flex items-center gap-2 text-sm text-gray-500 cursor-not-allowed">
+                              <input
+                                type="checkbox"
+                                checked={main1Checked}
+                                disabled
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              {eq.main1}
+                            </label>
+                          )}
+                          {eq.main2 && (
+                            <label className="flex items-center gap-2 text-sm text-gray-500 cursor-not-allowed">
+                              <input
+                                type="checkbox"
+                                checked={main2Checked}
+                                disabled
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              {eq.main2}
+                            </label>
+                          )}
+                          {eq.main3 && (
+                            <label className="flex items-center gap-2 text-sm text-gray-500 cursor-not-allowed">
+                              <input
+                                type="checkbox"
+                                checked={main3Checked}
+                                disabled
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              {eq.main3}
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {!selectedEquipment && <p className="text-xs text-gray-400 px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50">Pilih equipment terlebih dahulu</p>}
+                </div>
+
+                {/* Event Type (Readonly) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                  <div className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm flex items-center gap-2 ${
+                    eventType === "START" ? "border-green-400"
+                    : eventType === "STOP" ? "border-red-400"
+                    : eventType === "HEATING_UP" ? "border-orange-400"
+                    : "border-gray-200"
+                  }`}>
+                    {eventType === "START" && <CheckCircle size={16} className="text-green-600" />}
+                    {eventType === "HEATING_UP" && <Loader2 size={16} className="text-orange-600 animate-spin" />}
+                    {eventType === "STOP" && <XCircle size={16} className="text-red-600" />}
+                    <span className="font-medium">{eventType || "-"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tanggal & Jam — full width (Editable) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal & Jam</label>
+                <input
+                  type="datetime-local"
+                  value={timestamp}
+                  onChange={(e) => setTimestamp(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                />
+              </div>
+
+              {/* Shift & Posisi Power — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+                  <select
+                    value={shift}
+                    onChange={(e) => setShift(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                  >
+                    {SHIFT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power</label>
+                  <select
+                    value={posisiPower}
+                    onChange={(e) => setPosisiPower(e.target.value as "BTG" | "PLN" | "")}
+                    className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${
+                      posisiPower === "PLN" ? "border-yellow-500"
+                      : posisiPower === "BTG" ? "border-blue-500"
+                      : "border-gray-200"
+                    }`}
+                  >
+                    <option value="">Pilih Posisi Power</option>
+                    <option value="BTG">BTG</option>
+                    <option value="PLN">PLN</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Update Beban PLN & BTG — 2 kolom 1 baris (Editable) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={updateBebanPln}
+                    onChange={(e) => setUpdateBebanPln(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={updateBebanBtg}
+                    onChange={(e) => setUpdateBebanBtg(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
+              </div>
+
+              {/* Alasan — full width (Readonly) */}
+              {reason && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Alasan</label>
+                  <textarea
+                    value={reason}
+                    readOnly
+                    rows={2}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-300 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Dibuat Oleh — full width (Readonly) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dibuat Oleh</label>
+                <input
+                  type="text"
+                  value={user?.name || ""}
+                  readOnly
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 flex-shrink-0">
+              <button
+                onClick={() => { setShowPengaturanForm(false); setConfirmAction(null); }}
+                className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handlePengaturanSave}
+                disabled={saving}
+                className="px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                Simpan Perubahan
               </button>
             </div>
           </div>

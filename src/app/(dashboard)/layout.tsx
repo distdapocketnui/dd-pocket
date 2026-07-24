@@ -10,7 +10,7 @@ import Header from "@/components/layout/Header";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, hasRole } = useAuth();
-  const { approvals, approveApproval, rejectApproval } = useData();
+  const { approvals, users, approveApproval, rejectApproval } = useData();
   const router = useRouter();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -44,6 +44,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     .slice(0, 5);
 
   const myFeedbackCount = myAllApprovals.filter((a) => a.status !== "pending" && (!clearedAt || new Date(a.created_at).getTime() > new Date(clearedAt).getTime())).length;
+
+  // Helper: cari nama supervisor/penerima approval berdasarkan target_supervisor_id atau regu
+  const getApprovalTargetName = (approval: any) => {
+    if (!users) return null;
+
+    // Jika ada target_supervisor_id spesifik, gunakan nama supervisor tersebut
+    if (approval.target_supervisor_id) {
+      const supervisor = users.find(u => u.id === approval.target_supervisor_id);
+      if (supervisor) return supervisor.name;
+    }
+
+    // Jika tidak ada target_supervisor_id, cari supervisor berdasarkan regu approval
+    // Setiap regu memiliki 1 supervisor
+    if (approval.regu && approval.regu !== "-") {
+      const supervisor = users.find(u => 
+        u.role === "Supervisor" && 
+        u.status === "Aktif" && 
+        u.regu === approval.regu
+      );
+      if (supervisor) return supervisor.name;
+    }
+
+    // Fallback: jika regu dayshift/- atau tidak ada supervisor di regu, cari admin
+    const admin = users.find(u => u.role === "Admin" && u.status === "Aktif");
+    if (admin) return admin.name;
+
+    return null;
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -277,6 +305,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           </div>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-[11px] text-gray-500">diajukan</span>
+                            {getApprovalTargetName(a) && (
+                              <span className="text-[11px] text-gray-700 font-medium">ke {getApprovalTargetName(a)}</span>
+                            )}
                             <span className="text-[10px] text-gray-400">{a.created_at ? new Date(a.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
                           </div>
                           {a.new_data?.name && <p className="text-xs text-gray-400 mt-1">SG: {a.new_data.name}</p>}

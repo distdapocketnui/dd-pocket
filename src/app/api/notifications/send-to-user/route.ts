@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       body: message,
       url: url || "/",
       tag: tag || "dd-pocket-approval",
-      icon: "/icons/icon-192x192.png",
+      icon: "/logo_NUI.png",
     });
 
     return NextResponse.json({
