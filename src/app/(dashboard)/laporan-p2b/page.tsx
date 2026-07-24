@@ -17,6 +17,7 @@ import { canAccessRoute } from "@/lib/route-protection";
 
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Power House", "Power Plant", "Tambang", "Lainnya"];
 const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
+const SHIFT_OPTIONS = ["Shift 1 (Pagi)", "Shift 2 (Sore)", "Shift 3 (Malam)", "Dayshift"];
 const KEGIATAN_OPTIONS = ["Pengaturan Beban", "Inspeksi", "Lainnya"];
 const KONDISI_OPTIONS = ["Normal", "Rusak", "Perbaikan"];
 const LEVEL_TEGANGAN_OPTIONS = ["70 kV", "6,3 kV"];
@@ -124,6 +125,9 @@ function emptyForm(user?: { name: string; regu: string }, kegiatan: "Pengaturan 
     level_tegangan: "",
     kondisi: "",
     posisi_power: "",
+    shift: "",
+    update_beban_pln: "",
+    update_beban_btg: "",
     unit_pindah: "",
     aktifitas: "",
     area: "",
@@ -416,6 +420,9 @@ export default function LaporanP2BPage() {
         level_tegangan: form.level_tegangan || "",
         kondisi: form.kondisi || "",
         posisi_power: form.posisi_power || "",
+        shift: form.shift || "",
+        update_beban_pln: form.update_beban_pln ? parseFloat(form.update_beban_pln) : null,
+        update_beban_btg: form.update_beban_btg ? parseFloat(form.update_beban_btg) : null,
         unit_pindah: form.unit_pindah || "",
         aktifitas: form.aktifitas || "",
         area: form.area,
@@ -518,6 +525,9 @@ export default function LaporanP2BPage() {
       level_tegangan: item.level_tegangan || "",
       kondisi: item.kondisi || "",
       posisi_power: item.posisi_power as "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN",
+      shift: item.shift || "",
+      update_beban_pln: item.update_beban_pln?.toString() || "",
+      update_beban_btg: item.update_beban_btg?.toString() || "",
       unit_pindah: item.unit_pindah || "",
       aktifitas: item.aktifitas || "",
       area: item.area,
@@ -661,6 +671,17 @@ export default function LaporanP2BPage() {
   };
 
   const unitPindahCol = { key: "unit_pindah", header: "Unit Pindah", render: (r: LaporanP2B) => r.unit_pindah || "-" };
+  const shiftCol = { key: "shift", header: "Shift", render: (r: LaporanP2B) => r.shift || "-" };
+  const updateBebanPlnCol = {
+    key: "update_beban_pln",
+    header: "Beban PLN",
+    render: (r: LaporanP2B) => r.update_beban_pln != null ? `${r.update_beban_pln.toFixed(1)} MW` : "-",
+  };
+  const updateBebanBtgCol = {
+    key: "update_beban_btg",
+    header: "Beban BTG",
+    render: (r: LaporanP2B) => r.update_beban_btg != null ? `${r.update_beban_btg.toFixed(1)} MW` : "-",
+  };
   const aktifitasCol = { key: "aktifitas", header: "Aktifitas", render: (r: LaporanP2B) => r.aktifitas || "-" };
 
   const kondisiCol = {
@@ -758,8 +779,11 @@ export default function LaporanP2BPage() {
     lokasiCol,
     levelTeganganCol,
     posisiPowerCol,
+    shiftCol,
     areaCol,
     unitPindahCol,
+    updateBebanPlnCol,
+    updateBebanBtgCol,
     picCol,
     keteranganCol,
     gambarCol,
@@ -1158,26 +1182,7 @@ export default function LaporanP2BPage() {
               </div>
               )}
 
-              {/* Posisi Power — hanya untuk Pengaturan Beban */}
-              {isPengaturanBeban && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power *</label>
-                  <select
-                    value={form.posisi_power}
-                    onChange={(e) => setForm({ ...form, posisi_power: e.target.value as "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN" })}
-                    className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
-                      form.posisi_power === "BTG" || form.posisi_power === "PLN ke BTG"
-                        ? "border-green-400 ring-green-500/20 text-green-700"
-                        : form.posisi_power === "PLN" || form.posisi_power === "BTG ke PLN"
-                        ? "border-yellow-400 ring-yellow-500/20 text-yellow-700"
-                        : "border-gray-200"
-                    }`}
-                  >
-                    <option value="">Pilih Posisi Power</option>
-                    {POSISI_POWER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-              )}
+              {/* Posisi Power — dihapus, dipindah ke grid dengan Shift */}
 
               {/* Unit/Area — untuk Pengaturan Beban */}
               {isPengaturanBeban && (
@@ -1189,6 +1194,70 @@ export default function LaporanP2BPage() {
 
               {/* Unit Pindah — hanya untuk Pengaturan Beban */}
               {isPengaturanBeban && <UnitPindahDropdown unitPengaturan={unitPengaturan} value={form.unit_pindah} onChange={(v) => setForm({ ...form, unit_pindah: v })} />}
+
+              {/* Shift & Posisi Power — 2 kolom 1 baris (hanya untuk Pengaturan Beban) */}
+              {isPengaturanBeban && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+                    <select
+                      value={form.shift}
+                      onChange={(e) => setForm({ ...form, shift: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    >
+                      <option value="">Pilih Shift</option>
+                      {SHIFT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power *</label>
+                    <select
+                      value={form.posisi_power}
+                      onChange={(e) => setForm({ ...form, posisi_power: e.target.value as "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN" })}
+                      className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
+                        form.posisi_power === "BTG" || form.posisi_power === "PLN ke BTG"
+                          ? "border-green-400 ring-green-500/20 text-green-700"
+                          : form.posisi_power === "PLN" || form.posisi_power === "BTG ke PLN"
+                          ? "border-yellow-400 ring-yellow-500/20 text-yellow-700"
+                          : "border-gray-200"
+                      }`}
+                    >
+                      <option value="">Pilih Posisi Power</option>
+                      {POSISI_POWER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Update Beban PLN & BTG — 2 kolom 1 baris (hanya untuk Pengaturan Beban) */}
+              {isPengaturanBeban && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.update_beban_pln}
+                      onChange={(e) => setForm({ ...form, update_beban_pln: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      placeholder="0.0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={form.update_beban_btg}
+                      onChange={(e) => setForm({ ...form, update_beban_btg: e.target.value })}
+                      className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      placeholder="0.0"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Aktifitas — untuk Inspeksi & Lainnya */}
               {(isInspeksi || isLainnya) && (

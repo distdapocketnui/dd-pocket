@@ -101,4 +101,7 @@ export interface LaporanP2B {
   created_by: string;
   created_at: string;
   updated_at: string;
+  shift: string;
+  update_beban_pln: number | null;
+  update_beban_btg: number | null;
 }
