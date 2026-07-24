@@ -27,6 +27,7 @@ const SWITCHGEAR_ITEMS = [
 
 const EQUIPMENT_ITEMS = [
   { href: "/equipment-logs", label: "Start-Stop Peralatan", icon: Activity, glow: "blue" },
+  { href: "/pengaturan-beban", label: "Pengaturan Beban", icon: Activity, glow: "green" },
   { href: "/lap-operasi-harian", label: "Lap. Operasi Harian", icon: FileText },
   { href: "/lap-operasi-bulanan", label: "Lap. Operasi Bulanan", icon: FileText },
 ];

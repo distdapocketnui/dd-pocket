@@ -1,5 +1,6 @@
 export const ROUTE_ACCESS: Record<string, string[]> = {
   "/equipment-logs": ["Admin", "Supervisor", "Operator", "Manager"],
+  "/pengaturan-beban": ["Admin", "Supervisor", "Operator", "Manager"],
   "/laporan-p2b": ["Admin", "Supervisor", "Operator", "Manager"],
   "/pengguna": ["Admin"],
   "/database-status": ["Admin"],

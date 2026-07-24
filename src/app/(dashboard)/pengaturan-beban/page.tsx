@@ -1,24 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import DataTable from "@/components/ui/DataTable";
-import { downloadPdfMulti } from "@/lib/pdf";
+import { downloadPdf } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, getCurrentDatetimeLocal } from "@/lib/date";
-import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3, RefreshCw } from "lucide-react";
+import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, BarChart3, RefreshCw } from "lucide-react";
 import LineChart from "@/components/ui/LineChart";
 import ImageUpload from "@/components/ui/ImageUpload";
 import ImageGallery from "@/components/ui/ImageGallery";
 import type { LaporanP2B, UnitPengaturan } from "@/types";
 import { logger } from "@/lib/logger";
 import { canAccessRoute } from "@/lib/route-protection";
+import SupervisorCutiDialog from "@/components/ui/SupervisorCutiDialog";
 
 const LOKASI_OPTIONS = ["Tonasa 2/3", "Tonasa 4", "Tonasa 5", "Power House", "Power Plant", "Tambang", "Lainnya"];
 const POSISI_POWER_OPTIONS = ["BTG", "PLN", "PLN ke BTG", "BTG ke PLN"];
 const SHIFT_OPTIONS = ["Shift 1 (Pagi)", "Shift 2 (Sore)", "Shift 3 (Malam)", "Dayshift"];
-const KEGIATAN_OPTIONS = ["Pengaturan Beban", "Inspeksi", "Lainnya"];
+const KEGIATAN_OPTIONS = ["Pengaturan Beban"];
 const KONDISI_OPTIONS = ["Normal", "Rusak", "Perbaikan"];
 const LEVEL_TEGANGAN_OPTIONS = ["70 kV", "6,3 kV"];
 
@@ -67,7 +68,7 @@ function UnitPindahDropdown({ unitPengaturan, value, onChange }: { unitPengatura
 function PicDropdown({ users, value, onChange }: { users: { id: number; name: string; regu?: string }[]; value: string; onChange: (v: string) => void }) {
   const [open, setOpen] = useState(false);
   const selected = value ? value.split(", ").filter(Boolean) : [];
-  const filteredUsers = users.filter(u => u.regu); // Hanya tampilkan user yang memiliki regu
+  const filteredUsers = users.filter(u => u.regu);
 
   const toggle = (name: string) => {
     const idx = selected.indexOf(name);
@@ -110,7 +111,6 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "
 
 function formatDate(iso: string) {
   if (!iso) return "-";
-  // Abaikan timezone, ekstrak YYYY-MM-DDTHH:mm langsung dari string
   const clean = iso.replace(/[Zz].*$/, "").replace(/[+-]\d{2}:?\d{2}$/, "").trim();
   const m = clean.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
   if (!m) return "-";
@@ -118,7 +118,7 @@ function formatDate(iso: string) {
   return `${parseInt(d)} ${MONTHS[parseInt(month) - 1]} ${y} ${hh}:${mm}`;
 }
 
-function emptyForm(user?: { name: string; regu: string }, kegiatan: "Pengaturan Beban" | "Inspeksi" | "Lainnya" = "Pengaturan Beban") {
+function emptyForm(user?: { name: string; regu: string }) {
   return {
     tanggal_jam: getCurrentDatetimeLocal(),
     lokasi: "",
@@ -132,7 +132,7 @@ function emptyForm(user?: { name: string; regu: string }, kegiatan: "Pengaturan 
     aktifitas: "",
     area: "",
     pic: user?.name || "",
-    kegiatan: kegiatan,
+    kegiatan: "Pengaturan Beban" as "Pengaturan Beban",
     temuan: "",
     tindak_lanjut: "",
     keterangan: "",
@@ -143,7 +143,7 @@ function emptyForm(user?: { name: string; regu: string }, kegiatan: "Pengaturan 
   };
 }
 
-export default function LaporanP2BPage() {
+export default function PengaturanBebanPage() {
   const { user, hasRole } = useAuth();
   const router = useRouter();
   const canEdit = hasRole("Admin", "Supervisor", "Operator");
@@ -153,9 +153,8 @@ export default function LaporanP2BPage() {
   const isManager = user?.role === "Manager";
   const userRegu = user?.regu || "";
 
-  // Proteksi route: redirect ke dashboard jika role tidak punya akses
   useEffect(() => {
-    if (!canAccessRoute("/laporan-p2b", user?.role)) {
+    if (!canAccessRoute("/pengaturan-beban", user?.role)) {
       router.replace("/dashboard");
     }
   }, [user, router]);
@@ -168,21 +167,16 @@ export default function LaporanP2BPage() {
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
-
-  // Filter state — default ke kosong
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [usernameFilter, setUsernameFilter] = useState("");
-  const [kegiatanFilter, setKegiatanFilter] = useState("");
   const [showConfirmDownload, setShowConfirmDownload] = useState(false);
-  const [activeTab, setActiveTab] = useState<'inspeksi' | 'lainnya'>('inspeksi');
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: number; skipped: number; error?: string } | null>(null);
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
   const [syncP2BId, setSyncP2BId] = useState<number | null>(null);
   const [syncP2BData, setSyncP2BData] = useState<LaporanP2B | null>(null);
 
-  // Unique usernames from data (dibatasi sesuai regu untuk Manager/Visitor)
   const usernames = useMemo(() => {
     const names = new Set(
       data
@@ -193,11 +187,6 @@ export default function LaporanP2BPage() {
     return Array.from(names).sort();
   }, [data, canViewAllData, userRegu]);
 
-  const isInspeksi = form.kegiatan === "Inspeksi";
-  const isPengaturanBeban = form.kegiatan === "Pengaturan Beban";
-  const isLainnya = form.kegiatan === "Lainnya";
-
-  // ── Unit Pengaturan (dropdown Unit Pindah) ──
   const [unitPengaturan, setUnitPengaturan] = useState<UnitPengaturan[]>([]);
   useEffect(() => {
     const fetchUnitPengaturan = async () => {
@@ -208,7 +197,6 @@ export default function LaporanP2BPage() {
     fetchUnitPengaturan();
   }, []);
 
-  // ── Users untuk multi-select PIC ──
   const [picUsers, setPicUsers] = useState<{ id: number; name: string }[]>([]);
   useEffect(() => {
     const fetchPicUsers = async () => {
@@ -229,6 +217,7 @@ export default function LaporanP2BPage() {
       const { data: rows, error } = await supabase
         .from("laporan_p2b")
         .select("*")
+        .eq("kegiatan", "Pengaturan Beban")
         .order("tanggal_jam", { ascending: false });
       if (error) throw error;
       setData((rows || []) as LaporanP2B[]);
@@ -242,7 +231,6 @@ export default function LaporanP2BPage() {
   useEffect(() => {
     fetchData();
 
-    // Auto-refresh setiap 30 detik (real-time)
     let timer: ReturnType<typeof setInterval>;
     const start = () => { timer = setInterval(fetchData, 30000); };
     const stop = () => { if (timer) clearInterval(timer); };
@@ -258,21 +246,16 @@ export default function LaporanP2BPage() {
     return () => { stop(); document.removeEventListener("visibilitychange", handleVisibility); };
   }, [fetchData]);
 
-  // ── Filter by date range + username + kegiatan + regu ──
   const filtered = data.filter((r) => {
     if (!isInRange(r.tanggal_jam, startDate, endDate)) return false;
-    // Filter by PIC (bukan by nama pembuat laporan)
     if (usernameFilter) {
       const pics = r.pic ? r.pic.split(", ").filter(Boolean) : [];
       if (!pics.includes(usernameFilter)) return false;
     }
-    if (kegiatanFilter && r.kegiatan !== kegiatanFilter) return false;
-    // Manager/Visitor hanya lihat data dari regu-nya sendiri (kecuali Dayshift)
     if (!canViewAllData && userRegu && userRegu !== "Dayshift" && r.regu !== userRegu) return false;
     return true;
   });
 
-  // ── Cek apakah user bisa edit/hapus baris ini ──
   const canModifyRow = (r: LaporanP2B) => isAdmin || r.nama === user?.name;
 
   // ── Sync P2B Pengaturan Beban ke Equipment Logs (per baris) ──
@@ -290,7 +273,6 @@ export default function LaporanP2BPage() {
     try {
       const supabase = getSupabaseClient();
 
-      // 1. Fetch equipment list
       const { data: equipmentList, error: eqError } = await supabase
         .from("equipment")
         .select("id, name, unit, main1, main2, main3")
@@ -299,7 +281,6 @@ export default function LaporanP2BPage() {
 
       if (eqError || !equipmentList) throw new Error("Gagal mengambil data equipment");
 
-      // 2. Ambil data P2B yang diklik (hanya 1 record)
       const p2b = syncP2BData;
 
       if (!p2b.unit_pindah || p2b.unit_pindah.trim() === "") {
@@ -312,11 +293,9 @@ export default function LaporanP2BPage() {
       let skippedCount = 0;
       const errors: string[] = [];
 
-      // 3. Parse unit_pindah (bisa multiple: "Finish mill 5, crusher 3")
       const unitNames = p2b.unit_pindah.split(",").map((u) => u.trim()).filter(Boolean);
 
       for (const unitName of unitNames) {
-        // 4. Cari equipment by name (case-insensitive)
         const equipment = equipmentList.find(
           (e) => e.name.toLowerCase() === unitName.toLowerCase()
         );
@@ -326,7 +305,6 @@ export default function LaporanP2BPage() {
           continue;
         }
 
-        // 5. Cek duplikasi: equipment_id + timestamp yang sama
         const { data: existingLogs } = await supabase
           .from("equipment_logs")
           .select("id")
@@ -339,7 +317,6 @@ export default function LaporanP2BPage() {
           continue;
         }
 
-        // 6. Ambil last equipment log sebelum timestamp P2B
         const { data: lastLog } = await supabase
           .from("equipment_logs")
           .select("*")
@@ -351,14 +328,12 @@ export default function LaporanP2BPage() {
 
         const lastLogAny = lastLog as any;
 
-        // 7. Mapping posisi_power
         let mappedPosisiPower: string | null = null;
         if (p2b.posisi_power) {
           if (p2b.posisi_power.includes("BTG")) mappedPosisiPower = "BTG";
           else if (p2b.posisi_power.includes("PLN")) mappedPosisiPower = "PLN";
         }
 
-        // 8. Build payload
         const payload = {
           equipment_id: equipment.id,
           event_type: lastLogAny?.event_type || "HEATING_UP",
@@ -375,7 +350,6 @@ export default function LaporanP2BPage() {
           kegiatan: p2b.kegiatan || "Pengaturan Beban",
         };
 
-        // 9. Insert equipment log
         const { error: insertError } = await supabase
           .from("equipment_logs")
           .insert(payload as any);
@@ -402,17 +376,16 @@ export default function LaporanP2BPage() {
     }
   };
 
-  // ── Save (add / edit) ──
   const handleSave = async () => {
-    if ((isPengaturanBeban || isLainnya || isInspeksi) && !form.lokasi) {
+    if (!form.lokasi) {
       alert("Lokasi wajib diisi");
       return;
     }
-    if (isPengaturanBeban && !form.posisi_power) {
+    if (!form.posisi_power) {
       alert("Posisi Power wajib diisi");
       return;
     }
-    if (isPengaturanBeban && !form.area) {
+    if (!form.area) {
       alert("Unit/Area wajib diisi");
       return;
     }
@@ -459,7 +432,6 @@ export default function LaporanP2BPage() {
           .from("laporan_p2b")
           .insert(updateData)
           .select();
-        logger.info('[P2B] insert result', { inserted, error });
         if (error) throw error;
       }
 
@@ -467,16 +439,14 @@ export default function LaporanP2BPage() {
       setEditing(null);
       setForm(emptyForm(user || undefined));
       fetchData();
-    } catch (err) {
-      const errObj = err as any;
-      logger.error('save laporan_p2b error', errObj);
-      alert("Gagal menyimpan data: " + (errObj?.message || errObj?.error_description || JSON.stringify(errObj).slice(0, 200)));
+    } catch (err: any) {
+      logger.error('save laporan_p2b error', err);
+      alert("Gagal menyimpan data: " + (err?.message || err?.error_description || JSON.stringify(err).slice(0, 200)));
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Ambil URL gambar dari field images (JSON) atau image (single) ──
   const getImages = (item: LaporanP2B): string[] => {
     try {
       const parsed = item.images ? JSON.parse(item.images) : [];
@@ -486,19 +456,16 @@ export default function LaporanP2BPage() {
     }
   };
 
-  // ── Delete ──
   const handleDelete = async (id: number) => {
     try {
       const supabase = getSupabaseClient();
 
-      // Ambil data dulu untuk dapat URL gambar
       const { data: item } = await supabase
         .from("laporan_p2b")
         .select("image, images")
         .eq("id", id)
         .single();
 
-      // Hapus file gambar dari storage
       if (item) {
         const imageUrls: string[] = [];
         try {
@@ -526,7 +493,6 @@ export default function LaporanP2BPage() {
     }
   };
 
-  // ── Open edit form ──
   const openEdit = (item: LaporanP2B) => {
     setEditing(item);
     setForm({
@@ -542,12 +508,12 @@ export default function LaporanP2BPage() {
       aktifitas: item.aktifitas || "",
       area: item.area,
       pic: item.pic,
-      kegiatan: item.kegiatan as "Pengaturan Beban" | "Inspeksi" | "Lainnya",
+      kegiatan: item.kegiatan as "Pengaturan Beban",
       temuan: item.temuan || "",
       tindak_lanjut: item.tindak_lanjut || "",
       keterangan: item.keterangan || "",
-		image: item.image || "",
-		images: getImages(item),
+      image: item.image || "",
+      images: getImages(item),
       nama: item.nama || user?.name || "",
       regu: item.regu || user?.regu || "",
     });
@@ -555,75 +521,49 @@ export default function LaporanP2BPage() {
     setShowForm(true);
   };
 
-  // ── Open add form ──
-  const openAdd = (kegiatan: "Pengaturan Beban" | "Inspeksi" | "Lainnya" = "Pengaturan Beban") => {
+  const openAdd = () => {
     setEditing(null);
-
-    setForm(emptyForm(user || undefined, kegiatan));
+    setForm(emptyForm(user || undefined));
     setShowForm(true);
   };
 
-  // ── WhatsApp share ──
   const sendWhatsApp = (r: LaporanP2B) => {
     const now = new Date().toLocaleString("id-ID", {
       year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit",
     });
 
-    let detail = "";
-    if (r.kegiatan === "Inspeksi") {
-      detail = `*Aktifitas :* _${r.aktifitas || "-"}_\n*Lokasi :* _${r.lokasi}_\n*Kondisi :* _${r.kondisi || "-"}_\n*Temuan :* _${r.temuan || "-"}_\n*Tindak Lanjut :* _${r.tindak_lanjut || "-"}_`;
-    } else if (r.kegiatan === "Pengaturan Beban") {
-      detail = `*Lokasi :* _${r.lokasi}_\n*Level Tegangan :* _${r.level_tegangan || "-"}_\n*Posisi Power :* _${r.posisi_power || "-"}_\n*Unit/Area :* _${r.area}_\n*Unit Pindah :* _${r.unit_pindah || "-"}_`;
-    } else {
-      detail = `*Lokasi :* _${r.lokasi}_\n*Aktifitas :* _${r.aktifitas || "-"}_`;
-    }
+    const detail = `*Lokasi :* _${r.lokasi}_\n*Level Tegangan :* _${r.level_tegangan || "-"}_\n*Posisi Power :* _${r.posisi_power || "-"}_\n*Unit/Area :* _${r.area}_\n*Unit Pindah :* _${r.unit_pindah || "-"}_\n*Shift :* _${r.shift || "-"}_\n*Update Beban PLN :* _${r.update_beban_pln?.toFixed(1) || "-"} MW_\n*Update Beban BTG :* _${r.update_beban_btg?.toFixed(1) || "-"} MW_`;
 
-    const message = `--------------------------------\n*Laporan P2B*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Kegiatan :* _${r.kegiatan}_\n*Tanggal Jam :* _${formatDate(r.tanggal_jam)}_\n${detail}\n*PIC :* _${r.pic}_\n*Keterangan :* _${r.keterangan || "-"}_\n*Nama :* _${r.nama}_\n*Regu :* _${r.regu}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
+    const message = `--------------------------------\n*Laporan Pengaturan Beban*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Kegiatan :* _${r.kegiatan}_\n*Tanggal Jam :* _${formatDate(r.tanggal_jam)}_\n${detail}\n*PIC :* _${r.pic}_\n*Keterangan :* _${r.keterangan || "-"}_\n*Nama :* _${r.nama}_\n*Regu :* _${r.regu}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
 
-  // ── PDF download ──
   const handleDownloadPdf = () => {
     const periodLabel = formatPeriod(startDate, endDate);
 
     const toDate = (iso: string) => toIndonesianDate(iso);
 
-    const inspeksiRows = inspeksiData.map((r) => [
-      toDate(r.tanggal_jam), r.lokasi, r.aktifitas || "-",
-      r.kondisi || "-", r.temuan || "-", r.tindak_lanjut || "-",
-      r.pic, r.keterangan || "-", r.regu || "-",
-    ]);
-
-    const lainnyaRows = lainnyaData.map((r) => [
-      toDate(r.tanggal_jam), r.lokasi, r.aktifitas || "-",
+    const rows = filtered.map((r) => [
+      toDate(r.tanggal_jam), r.lokasi, r.level_tegangan || "-",
+      r.posisi_power || "-", r.shift || "-", r.area, r.unit_pindah || "-",
+      r.update_beban_pln != null ? `${r.update_beban_pln.toFixed(1)} MW` : "-",
+      r.update_beban_btg != null ? `${r.update_beban_btg.toFixed(1)} MW` : "-",
       r.pic, r.keterangan || "-", r.regu || "-",
     ]);
 
     const userSuffix = usernameFilter ? usernameFilter.replace(/\s+/g, "_") : "all";
-    const kegiatanSuffix = kegiatanFilter ? kegiatanFilter.replace(/\s+/g, "_") : "all";
 
-    downloadPdfMulti({
-      title: "Laporan Inspeksi & Lainnya",
+    downloadPdf({
+      title: "Laporan Pengaturan Beban",
       period: periodLabel,
-      sections: [
-        {
-          title: "Inspeksi",
-          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "Kondisi", "Temuan", "Tindak Lanjut", "PIC", "Keterangan", "Regu"],
-          rows: inspeksiRows,
-        },
-        {
-          title: "Lainnya",
-          columns: ["Tanggal Jam", "Lokasi", "Aktifitas", "PIC", "Keterangan", "Regu"],
-          rows: lainnyaRows,
-        },
-      ],
-      filename: `Laporan_P2B_${startDate || "all"}_${endDate || "all"}_${kegiatanSuffix}_${userSuffix}`,
+      columns: ["Tanggal Jam", "Lokasi", "Level Tegangan", "Posisi Power", "Shift", "Unit/Area", "Unit Pindah", "Beban PLN", "Beban BTG", "PIC", "Keterangan", "Regu"],
+      rows,
+      filename: `Laporan_PengaturanBeban_${startDate || "all"}_${endDate || "all"}_${userSuffix}`,
     });
   };
 
-  // ── DataTable columns ──
   const tanggalJamCol = {
     key: "tanggal_jam",
     header: "Tanggal Jam",
@@ -669,8 +609,9 @@ export default function LaporanP2BPage() {
       ),
   };
 
-  const unitPindahCol = { key: "unit_pindah", header: "Unit Pindah", render: (r: LaporanP2B) => r.unit_pindah || "-" };
   const shiftCol = { key: "shift", header: "Shift", render: (r: LaporanP2B) => r.shift || "-" };
+  const areaCol = { key: "area", header: "Unit/Area", render: (r: LaporanP2B) => r.area };
+  const unitPindahCol = { key: "unit_pindah", header: "Unit Pindah", render: (r: LaporanP2B) => r.unit_pindah || "-" };
   const updateBebanPlnCol = {
     key: "update_beban_pln",
     header: "Beban PLN",
@@ -681,25 +622,7 @@ export default function LaporanP2BPage() {
     header: "Beban BTG",
     render: (r: LaporanP2B) => r.update_beban_btg != null ? `${r.update_beban_btg.toFixed(1)} MW` : "-",
   };
-  const aktifitasCol = { key: "aktifitas", header: "Aktifitas", render: (r: LaporanP2B) => r.aktifitas || "-" };
-
-  const kondisiCol = {
-    key: "kondisi",
-    header: "Kondisi",
-    render: (r: LaporanP2B) => (
-      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-        r.kondisi === "Normal" ? "bg-green-100 text-green-700" :
-        r.kondisi === "Rusak" ? "bg-red-100 text-red-700" :
-        r.kondisi === "Perbaikan" ? "bg-yellow-100 text-yellow-700" :
-        "bg-gray-100 text-gray-600"
-      }`}>{r.kondisi || "-"}</span>
-    ),
-  };
-
-  const areaCol = { key: "area", header: "Unit/Area", render: (r: LaporanP2B) => r.area };
   const picCol = { key: "pic", header: "PIC", render: (r: LaporanP2B) => r.pic };
-  const temuanCol = { key: "temuan", header: "Temuan", render: (r: LaporanP2B) => r.temuan || "-" };
-  const tindakLanjutCol = { key: "tindak_lanjut", header: "Tindak Lanjut", render: (r: LaporanP2B) => r.tindak_lanjut || "-" };
   const keteranganCol = { key: "keterangan", header: "Keterangan", render: (r: LaporanP2B) => r.keterangan || "-" };
   const gambarCol = {
     key: "image", header: "Gambar", render: (r: LaporanP2B) => {
@@ -757,7 +680,7 @@ export default function LaporanP2BPage() {
                 >
                   <Trash2 size={15} />
                 </button>
-                {r.kegiatan === "Pengaturan Beban" && (r.posisi_power === "PLN ke BTG" || r.posisi_power === "BTG ke PLN") && canModify && (
+                {(r.posisi_power === "PLN ke BTG" || r.posisi_power === "BTG ke PLN") && canModify && (
                   <button
                     onClick={() => {
                       setSyncP2BId(r.id);
@@ -775,15 +698,18 @@ export default function LaporanP2BPage() {
           },
         },
       ]
-    : [];;
+    : [];
 
-  const inspeksiColumns = [
+  const columns = [
     tanggalJamCol,
     lokasiCol,
-    aktifitasCol,
-    kondisiCol,
-    temuanCol,
-    tindakLanjutCol,
+    levelTeganganCol,
+    posisiPowerCol,
+    shiftCol,
+    areaCol,
+    unitPindahCol,
+    updateBebanPlnCol,
+    updateBebanBtgCol,
     picCol,
     keteranganCol,
     gambarCol,
@@ -792,43 +718,21 @@ export default function LaporanP2BPage() {
     ...(!isManager ? [waCol] : []),
     ...aksiCol,
   ];
-
-  const lainnyaColumns = [
-    tanggalJamCol,
-    lokasiCol,
-    aktifitasCol,
-    picCol,
-    keteranganCol,
-    gambarCol,
-    namaCol,
-    reguCol,
-    ...(!isManager ? [waCol] : []),
-    ...aksiCol,
-  ];
-
-  const inspeksiData = filtered.filter((r) => r.kegiatan === "Inspeksi");
-  const lainnyaData = filtered.filter((r) => r.kegiatan === "Lainnya");
 
   // ── Rekap Laporan per Personil ──
-  const rekapMap = new Map<string, { inspeksi: number; lainnya: number }>();
+  const rekapMap = new Map<string, number>();
   filtered.forEach((r) => {
     const pics = r.pic ? r.pic.split(", ").filter(Boolean) : ["Tanpa PIC"];
     pics.forEach((pic) => {
-      if (!rekapMap.has(pic)) {
-        rekapMap.set(pic, { inspeksi: 0, lainnya: 0 });
-      }
-      const entry = rekapMap.get(pic)!;
-      if (r.kegiatan === "Inspeksi") entry.inspeksi++;
-      else if (r.kegiatan === "Lainnya") entry.lainnya++;
+      rekapMap.set(pic, (rekapMap.get(pic) || 0) + 1);
     });
   });
 
   const rekapRows = Array.from(rekapMap.entries())
-    .map(([nama, counts]) => ({ nama, ...counts }))
+    .map(([nama, count]) => ({ nama, count }))
     .sort((a, b) => a.nama.localeCompare(b.nama));
 
-  const rekapTotalInspeksi = rekapRows.reduce((sum, r) => sum + r.inspeksi, 0);
-  const rekapTotalLainnya = rekapRows.reduce((sum, r) => sum + r.lainnya, 0);
+  const rekapTotal = rekapRows.reduce((sum, r) => sum + r.count, 0);
 
   // ── Chart: jumlah inputan per nama ──
   const chartData = useMemo(() => {
@@ -848,15 +752,13 @@ export default function LaporanP2BPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Laporan Harian P2B</h1>
-        <p className="text-sm text-gray-500 mt-1">Pengaturan Beban &amp; Inspeksi Rutin</p>
+        <h1 className="text-2xl font-bold text-gray-900">Laporan Pengaturan Beban</h1>
+        <p className="text-sm text-gray-500 mt-1">Monitoring pengaturan beban harian</p>
       </div>
 
-      {/* Filter Tanggal + Username + Kegiatan + PDF */}
+      {/* Filter Tanggal + Username + PDF */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-3">
-        {/* Desktop: 1 baris full width */}
         <div className="hidden lg:flex items-center gap-2">
-          {/* Tanggal */}
           <div className="flex items-center gap-2 flex-1">
             <input
               type="date"
@@ -873,7 +775,6 @@ export default function LaporanP2BPage() {
             />
           </div>
 
-          {/* User */}
           <select
             value={usernameFilter}
             onChange={(e) => setUsernameFilter(e.target.value)}
@@ -885,19 +786,6 @@ export default function LaporanP2BPage() {
             ))}
           </select>
 
-          {/* Kegiatan */}
-          <select
-            value={kegiatanFilter}
-            onChange={(e) => setKegiatanFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-          >
-            <option value="">Semua Kegiatan</option>
-            {KEGIATAN_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
-
-          {/* Download PDF */}
           <button
             onClick={() => setShowConfirmDownload(true)}
             className="ml-auto px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-1.5"
@@ -907,9 +795,7 @@ export default function LaporanP2BPage() {
           </button>
         </div>
 
-        {/* Mobile: 3 baris */}
         <div className="lg:hidden flex flex-col gap-2">
-          {/* Tanggal (full width) */}
           <div className="flex items-center gap-2">
             <input
               type="date"
@@ -926,32 +812,17 @@ export default function LaporanP2BPage() {
             />
           </div>
 
-          {/* User + Kegiatan (1 baris) */}
-          <div className="flex items-center gap-2">
-            <select
-              value={usernameFilter}
-              onChange={(e) => setUsernameFilter(e.target.value)}
-              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            >
-              <option value="">Semua User</option>
-              {usernames.map((name) => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
+          <select
+            value={usernameFilter}
+            onChange={(e) => setUsernameFilter(e.target.value)}
+            className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          >
+            <option value="">Semua User</option>
+            {usernames.map((name) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
 
-            <select
-              value={kegiatanFilter}
-              onChange={(e) => setKegiatanFilter(e.target.value)}
-              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            >
-              <option value="">Semua Kegiatan</option>
-              {KEGIATAN_OPTIONS.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Download PDF (full width) */}
           <button
             onClick={() => setShowConfirmDownload(true)}
             className="w-full px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5"
@@ -962,7 +833,6 @@ export default function LaporanP2BPage() {
         </div>
       </div>
 
-
       {/* Chart Pencapaian */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-4">
         <div className="flex items-center gap-2 mb-3">
@@ -972,121 +842,69 @@ export default function LaporanP2BPage() {
         <LineChart labels={chartData.labels} data={chartData.data} label="Jumlah Inputan" />
       </div>
 
-      {/* Segmented Control - Filter Tabel */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-4 sm:px-6 py-3">
-        <div className="flex rounded-lg bg-gray-100 p-1 gap-1">
-          <button
-            onClick={() => setActiveTab('inspeksi')}
-            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-              activeTab === 'inspeksi'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Inspeksi
-          </button>
-          <button
-            onClick={() => setActiveTab('lainnya')}
-            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
-              activeTab === 'lainnya'
-                ? 'bg-orange-500 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Lainnya
-          </button>
-        </div>
-      </div>
-
       {/* Table */}
       {loading ? (
         <div className="flex items-center justify-center py-20 text-gray-400">
           <Loader2 className="w-6 h-6 animate-spin" />
         </div>
       ) : (
-        <div className="space-y-8">
-          {/* Tabel Inspeksi */}
-          {(activeTab === 'inspeksi') && (
-            <DataTable
-              title="Inspeksi"
-              columns={inspeksiColumns}
-              data={inspeksiData}
-              searchPlaceholder="Cari data Inspeksi..."
-              actions={
-                canEdit && (
-                  <button
-                    onClick={() => { setActiveTab('inspeksi'); openAdd('Inspeksi'); }}
-                    className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
-                  >
-                    <Plus size={16} /> Tambah Data
-                  </button>
-                )
-              }
-            />
-          )}
-          {/* Tabel Lainnya */}
-          {(activeTab === 'lainnya') && (
-            <DataTable
-              title="Lainnya"
-              columns={lainnyaColumns}
-              data={lainnyaData}
-              searchPlaceholder="Cari data Lainnya..."
-              actions={
-                canEdit && (
-                  <button
-                    onClick={() => { setActiveTab('lainnya'); openAdd('Lainnya'); }}
-                    className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
-                  >
-                    <Plus size={16} /> Tambah Data
-                  </button>
-                )
-              }
-            />
-          )}
-
-          {/* Rekap Laporan Harian P2B */}
-          <DataTable
-            title={
-              <div className="flex items-center justify-between w-full">
-                <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Rekap Laporan Harian P2B
-                </span>
-                {rekapRows.length > 0 && (
-                  <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full ml-auto">
-                    Total: {rekapTotalInspeksi + rekapTotalLainnya} Laporan
-                  </span>
-                )}
-              </div>
-            }
-            columns={[
-              { key: "nama", header: "Nama Personil", render: (r: { nama: string; inspeksi: number; lainnya: number }) => <span className="font-medium text-gray-800">{r.nama}</span> },
-              { key: "inspeksi", header: "Inspeksi", render: (r: { nama: string; inspeksi: number; lainnya: number }) => <span className="text-center block">{r.inspeksi}</span> },
-              { key: "lainnya", header: "Lainnya", render: (r: { nama: string; inspeksi: number; lainnya: number }) => <span className="text-center block">{r.lainnya}</span> },
-            ]}
-            data={rekapRows}
-            searchable={true}
-            searchPlaceholder="Cari nama personil..."
-          />
-        </div>
+        <DataTable
+          title="Pengaturan Beban"
+          columns={columns}
+          data={filtered}
+          searchPlaceholder="Cari data Pengaturan Beban..."
+          getRowClass={(r) =>
+            r.posisi_power === "BTG" || r.posisi_power === "PLN ke BTG"
+              ? "hover:bg-green-100"
+              : r.posisi_power === "PLN" || r.posisi_power === "BTG ke PLN"
+              ? "hover:bg-yellow-100"
+              : ""
+          }
+          actions={
+            canEdit && (
+              <button
+                onClick={openAdd}
+                className="btn-glow flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap"
+              >
+                <Plus size={16} /> Tambah Data
+              </button>
+            )
+          }
+        />
       )}
+
+      {/* Rekap Laporan Harian */}
+      <DataTable
+        title={
+          <div className="flex items-center justify-between w-full">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Rekap Laporan Harian
+            </span>
+            {rekapRows.length > 0 && (
+              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full ml-auto">
+                Total: {rekapTotal} Laporan
+              </span>
+            )}
+          </div>
+        }
+        columns={[
+          { key: "nama", header: "Nama Personil", render: (r: { nama: string; count: number }) => <span className="font-medium text-gray-800">{r.nama}</span> },
+          { key: "count", header: "Jumlah Laporan", render: (r: { nama: string; count: number }) => <span className="text-center block">{r.count}</span> },
+        ]}
+        data={rekapRows}
+        searchable={true}
+        searchPlaceholder="Cari nama personil..."
+      />
 
       {/* ── Form Modal ── */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">{editing ? "Edit Laporan Harian P2B" : "Tambah Laporan Harian P2B"}</h3>
+              <h3 className="text-base font-semibold text-gray-900">{editing ? "Edit Laporan Pengaturan Beban" : "Tambah Laporan Pengaturan Beban"}</h3>
             </div>
-            <div className={`p-6 space-y-4 ${
-              isPengaturanBeban
-                ? '[&_input]:!border-green-200 [&_input]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)] [&_select]:!border-green-200 [&_select]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)] [&_textarea]:!border-green-200 [&_textarea]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)]'
-                : isInspeksi
-                ? '[&_input]:!border-red-200 [&_input]:![box-shadow:0_0_0_1px_rgba(252,165,165,0.15),0_0_6px_rgba(252,165,165,0.12)] [&_select]:!border-red-200 [&_select]:![box-shadow:0_0_0_1px_rgba(252,165,165,0.15),0_0_6px_rgba(252,165,165,0.12)] [&_textarea]:!border-red-200 [&_textarea]:![box-shadow:0_0_0_1px_rgba(252,165,165,0.15),0_0_6px_rgba(252,165,165,0.12)]'
-                : isLainnya
-                ? '[&_input]:!border-blue-200 [&_input]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.15),0_0_6px_rgba(147,197,253,0.12)] [&_select]:!border-blue-200 [&_select]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.15),0_0_6px_rgba(147,197,253,0.12)] [&_textarea]:!border-blue-200 [&_textarea]:![box-shadow:0_0_0_1px_rgba(147,197,253,0.15),0_0_6px_rgba(147,197,253,0.12)]'
-                : ''
-            }`}>
+            <div className="p-6 space-y-4 [&_input]:!border-green-200 [&_input]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)] [&_select]:!border-green-200 [&_select]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)] [&_textarea]:!border-green-200 [&_textarea]:![box-shadow:0_0_0_1px_rgba(134,239,172,0.15),0_0_6px_rgba(134,239,172,0.12)]">
               {/* Tanggal Jam */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Jam *</label>
@@ -1095,17 +913,16 @@ export default function LaporanP2BPage() {
 
               {/* Kegiatan */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kegiatan *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kegiatan</label>
                 <input
                   type="text"
-                  value={form.kegiatan}
+                  value="Pengaturan Beban"
                   readOnly
                   className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
                 />
               </div>
 
               {/* Lokasi */}
-              {isPengaturanBeban || isLainnya || isInspeksi ? (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Lokasi *</label>
                 <select value={form.lokasi} onChange={(e) => setForm({ ...form, lokasi: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
@@ -1113,10 +930,8 @@ export default function LaporanP2BPage() {
                   {LOKASI_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
-              ) : null}
 
-              {/* Level Tegangan — hanya untuk Pengaturan Beban */}
-              {isPengaturanBeban && (
+              {/* Level Tegangan */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Level Tegangan</label>
                 <select value={form.level_tegangan} onChange={(e) => setForm({ ...form, level_tegangan: e.target.value as "" | "70 kV" | "6,3 kV" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
@@ -1124,122 +939,81 @@ export default function LaporanP2BPage() {
                   {LEVEL_TEGANGAN_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
-              )}
 
-              {/* Posisi Power — dihapus, dipindah ke grid dengan Shift */}
+              {/* Posisi Power */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power *</label>
+                <select
+                  value={form.posisi_power}
+                  onChange={(e) => setForm({ ...form, posisi_power: e.target.value as "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN" })}
+                  className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
+                    form.posisi_power === "BTG" || form.posisi_power === "PLN ke BTG"
+                      ? "border-green-400 ring-green-500/20 text-green-700"
+                      : form.posisi_power === "PLN" || form.posisi_power === "BTG ke PLN"
+                      ? "border-yellow-400 ring-yellow-500/20 text-yellow-700"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <option value="">Pilih Posisi Power</option>
+                  {POSISI_POWER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
 
-              {/* Unit/Area — untuk Pengaturan Beban */}
-              {isPengaturanBeban && (
+              {/* Shift */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+                <select
+                  value={form.shift}
+                  onChange={(e) => setForm({ ...form, shift: e.target.value })}
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                >
+                  <option value="">Pilih Shift</option>
+                  {SHIFT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+
+              {/* Unit/Area */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Unit/Area *</label>
                 <input type="text" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" placeholder="Contoh: GG-01" />
               </div>
-              )}
 
-              {/* Unit Pindah — hanya untuk Pengaturan Beban */}
-              {isPengaturanBeban && <UnitPindahDropdown unitPengaturan={unitPengaturan} value={form.unit_pindah} onChange={(v) => setForm({ ...form, unit_pindah: v })} />}
+              {/* Unit Pindah */}
+              <UnitPindahDropdown unitPengaturan={unitPengaturan} value={form.unit_pindah} onChange={(v) => setForm({ ...form, unit_pindah: v })} />
 
-              {/* Shift & Posisi Power — 2 kolom 1 baris (hanya untuk Pengaturan Beban) */}
-              {isPengaturanBeban && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Shift</label>
-                    <select
-                      value={form.shift}
-                      onChange={(e) => setForm({ ...form, shift: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                    >
-                      <option value="">Pilih Shift</option>
-                      {SHIFT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power *</label>
-                    <select
-                      value={form.posisi_power}
-                      onChange={(e) => setForm({ ...form, posisi_power: e.target.value as "" | "BTG" | "PLN" | "PLN ke BTG" | "BTG ke PLN" })}
-                      className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:bg-white focus:ring-4 outline-none transition-all ${
-                        form.posisi_power === "BTG" || form.posisi_power === "PLN ke BTG"
-                          ? "border-green-400 ring-green-500/20 text-green-700"
-                          : form.posisi_power === "PLN" || form.posisi_power === "BTG ke PLN"
-                          ? "border-yellow-400 ring-yellow-500/20 text-yellow-700"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <option value="">Pilih Posisi Power</option>
-                      {POSISI_POWER_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Update Beban PLN & BTG — 2 kolom 1 baris (hanya untuk Pengaturan Beban) */}
-              {isPengaturanBeban && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={form.update_beban_pln}
-                      onChange={(e) => setForm({ ...form, update_beban_pln: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                      placeholder="0.0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={form.update_beban_btg}
-                      onChange={(e) => setForm({ ...form, update_beban_btg: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                      placeholder="0.0"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Aktifitas — untuk Inspeksi & Lainnya */}
-              {(isInspeksi || isLainnya) && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aktifitas</label>
-                <textarea value={form.aktifitas} onChange={(e) => setForm({ ...form, aktifitas: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none" placeholder="Aktifitas" />
-              </div>
-              )}
-
-              {/* Kondisi — hanya tampil jika Inspeksi */}
-              {isInspeksi && (
+              {/* Update Beban PLN & BTG — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kondisi</label>
-                  <select value={form.kondisi} onChange={(e) => setForm({ ...form, kondisi: e.target.value as "Normal" | "Rusak" | "Perbaikan" })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all">
-                    {KONDISI_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={form.update_beban_pln}
+                    onChange={(e) => setForm({ ...form, update_beban_pln: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
                 </div>
-              )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={form.update_beban_btg}
+                    onChange={(e) => setForm({ ...form, update_beban_btg: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
+              </div>
 
               {/* PIC */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">PIC *</label>
                 <PicDropdown users={picUsers} value={form.pic} onChange={(v) => setForm({ ...form, pic: v })} />
               </div>
-
-              {/* Temuan & Tindak Lanjut — hanya tampil jika Inspeksi */}
-              {isInspeksi && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Temuan</label>
-                    <textarea value={form.temuan} onChange={(e) => setForm({ ...form, temuan: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none" placeholder="Temuan (jika ada)" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tindak Lanjut</label>
-                    <textarea value={form.tindak_lanjut} onChange={(e) => setForm({ ...form, tindak_lanjut: e.target.value })} rows={2} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all resize-none" placeholder="Tindak lanjut (jika ada)" />
-                  </div>
-                </>
-              )}
 
               {/* Keterangan */}
               <div>
@@ -1257,7 +1031,7 @@ export default function LaporanP2BPage() {
                 />
               </div>
 
-              {/* Nama & Regu — read-only, dari user login */}
+              {/* Nama & Regu — read-only */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nama</label>
@@ -1296,6 +1070,20 @@ export default function LaporanP2BPage() {
         </div>
       )}
 
+      {/* ── Confirm Delete ── */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Hapus data?</h3>
+            <p className="text-sm text-gray-500 mb-6">Data yang dihapus tidak dapat dikembalikan.</p>
+            <div className="flex items-center justify-end gap-3">
+              <button onClick={() => setConfirmDelete(null)} className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Batal</button>
+              <button onClick={() => handleDelete(confirmDelete)} className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors">Hapus</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Confirm Sync ── */}
       {showSyncConfirm && syncP2BData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => { setShowSyncConfirm(false); setSyncP2BId(null); setSyncP2BData(null); }}>
@@ -1309,20 +1097,6 @@ export default function LaporanP2BPage() {
                 {syncing && <Loader2 className="w-4 h-4 animate-spin" />}
                 Ya
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Confirm Delete ── */}
-      {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={() => setConfirmDelete(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Hapus data?</h3>
-            <p className="text-sm text-gray-500 mb-6">Data yang dihapus tidak dapat dikembalikan.</p>
-            <div className="flex items-center justify-end gap-3">
-              <button onClick={() => setConfirmDelete(null)} className="px-4 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">Batal</button>
-              <button onClick={() => handleDelete(confirmDelete)} className="px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors">Hapus</button>
             </div>
           </div>
         </div>

@@ -40,6 +40,7 @@ export interface EquipmentLog {
   main2: string | null;
   main3: string | null;
   posisi_power: string | null;
+  kegiatan?: string | null;
 }
 
 export interface EquipmentLogWithDetails extends EquipmentLog {
