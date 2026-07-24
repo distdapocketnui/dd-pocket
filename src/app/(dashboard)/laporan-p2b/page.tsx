@@ -7,7 +7,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import DataTable from "@/components/ui/DataTable";
 import { downloadPdfMulti } from "@/lib/pdf";
 import { isInRange, formatPeriod, toIndonesianDate, getCurrentDatetimeLocal } from "@/lib/date";
-import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3 } from "lucide-react";
+import { Plus, Edit3, Trash2, Loader2, Send, Calendar, Download, User, Activity, BarChart3, RefreshCw } from "lucide-react";
 import LineChart from "@/components/ui/LineChart";
 import ImageUpload from "@/components/ui/ImageUpload";
 import ImageGallery from "@/components/ui/ImageGallery";
@@ -172,6 +172,8 @@ export default function LaporanP2BPage() {
   const [kegiatanFilter, setKegiatanFilter] = useState("");
   const [showConfirmDownload, setShowConfirmDownload] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'pengaturan' | 'inspeksi' | 'lainnya'>('pengaturan');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: number; skipped: number; error?: string } | null>(null);
 
   // Unique usernames from data (dibatasi sesuai regu untuk Manager/Visitor)
   const usernames = useMemo(() => {
@@ -265,6 +267,126 @@ export default function LaporanP2BPage() {
 
   // ── Cek apakah user bisa edit/hapus baris ini ──
   const canModifyRow = (r: LaporanP2B) => isAdmin || r.nama === user?.name;
+
+  // ── Sync P2B Pengaturan Beban ke Equipment Logs ──
+  const handleSyncToEquipmentLogs = async () => {
+    if (!canEdit) {
+      alert("Anda tidak memiliki akses untuk sync data.");
+      return;
+    }
+
+    setSyncing(true);
+    setSyncResult(null);
+
+    try {
+      const supabase = getSupabaseClient();
+
+      // 1. Fetch equipment list
+      const { data: equipmentList, error: eqError } = await supabase
+        .from("equipment")
+        .select("id, name, unit, main1, main2, main3")
+        .eq("is_active", true)
+        .order("name");
+
+      if (eqError || !equipmentList) throw new Error("Gagal mengambil data equipment");
+
+      // 2. Ambil data P2B Pengaturan Beban yang sudah difilter
+      const p2bData = pengaturanBebanData;
+
+      let successCount = 0;
+      let skippedCount = 0;
+      const errors: string[] = [];
+
+      // 3. Loop setiap record P2B
+      for (const p2b of p2bData) {
+        if (!p2b.unit_pindah || p2b.unit_pindah.trim() === "") continue;
+
+        // Parse unit_pindah (bisa multiple: "Finish mill 5, crusher 3")
+        const unitNames = p2b.unit_pindah.split(",").map((u) => u.trim()).filter(Boolean);
+
+        for (const unitName of unitNames) {
+          // Cari equipment by name (case-insensitive)
+          const equipment = equipmentList.find(
+            (e) => e.name.toLowerCase() === unitName.toLowerCase()
+          );
+
+          if (!equipment) {
+            errors.push(`Equipment "${unitName}" tidak ditemukan di master data.`);
+            continue;
+          }
+
+          // 4. Cek duplikasi: equipment_id + timestamp yang sama
+          const { data: existingLogs } = await supabase
+            .from("equipment_logs")
+            .select("id")
+            .eq("equipment_id", equipment.id)
+            .eq("timestamp", p2b.tanggal_jam)
+            .maybeSingle();
+
+          if (existingLogs) {
+            skippedCount++;
+            continue;
+          }
+
+          // 5. Ambil last equipment log sebelum timestamp P2B
+          const { data: lastLog } = await supabase
+            .from("equipment_logs")
+            .select("*")
+            .eq("equipment_id", equipment.id)
+            .lt("timestamp", p2b.tanggal_jam)
+            .order("timestamp", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const lastLogAny = lastLog as any;
+
+          // 6. Mapping posisi_power
+          let mappedPosisiPower: string | null = null;
+          if (p2b.posisi_power) {
+            if (p2b.posisi_power.includes("BTG")) mappedPosisiPower = "BTG";
+            else if (p2b.posisi_power.includes("PLN")) mappedPosisiPower = "PLN";
+          }
+
+          // 7. Build payload
+          const payload = {
+            equipment_id: equipment.id,
+            event_type: lastLogAny?.event_type || "HEATING_UP",
+            timestamp: p2b.tanggal_jam,
+            reason: lastLogAny?.reason || null,
+            shift: lastLogAny?.shift || "Dayshift",
+            update_beban_pln: null,
+            update_beban_btg: null,
+            created_by: p2b.created_by || p2b.nama || "",
+            posisi_power: mappedPosisiPower,
+            main1: lastLogAny?.main1 || equipment.main1 || null,
+            main2: lastLogAny?.main2 || equipment.main2 || null,
+            main3: lastLogAny?.main3 || equipment.main3 || null,
+          };
+
+          // 8. Insert equipment log
+          const { error: insertError } = await supabase
+            .from("equipment_logs")
+            .insert(payload as any);
+
+          if (insertError) {
+            errors.push(`Gagal sync "${unitName}": ${insertError.message}`);
+          } else {
+            successCount++;
+          }
+        }
+      }
+
+      setSyncResult({ success: successCount, skipped: skippedCount });
+      alert(
+        `Sync selesai!\n\n✅ Berhasil: ${successCount} data\n⏭️ Dilewati (duplikat): ${skippedCount} data${errors.length > 0 ? "\n❌ Error: " + errors.slice(0, 3).join("\n") : ""}`
+      );
+    } catch (err: any) {
+      setSyncResult({ success: 0, skipped: 0, error: err.message });
+      alert("Gagal sync: " + (err.message || JSON.stringify(err)));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // ── Save (add / edit) ──
   const handleSave = async () => {
@@ -615,12 +737,21 @@ export default function LaporanP2BPage() {
                 >
                   <Trash2 size={15} />
                 </button>
+                {r.kegiatan === "Pengaturan Beban" && (
+                  <button
+                    onClick={() => handleSyncToEquipmentLogs()}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 transition-all"
+                    title="Sync ke Equipment Logs"
+                  >
+                    <RefreshCw size={15} />
+                  </button>
+                )}
               </div>
             );
           },
         },
       ]
-    : [];
+    : [];;
 
   const pengaturanBebanColumns = [
     tanggalJamCol,
