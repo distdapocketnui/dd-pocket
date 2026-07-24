@@ -136,11 +136,11 @@ export default function SGMaintenancePage() {
     name: string; location: string; unit: string; equipment: string; status: SGStatus;
     pic: string; requester: string; notifNo: string; lototoNo: string;
     description: string; image: string; images: string[];
-    activeTime: string; finishTime: string;
+    activeTime: string; finishTime: string; alasan_stop: string;
   }>({
     name: "", location: "", unit: "Tonasa 2/3", equipment: "", status: "Maintenance",
     pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
-    activeTime: "", finishTime: "",
+    activeTime: "", finishTime: "", alasan_stop: "",
   });
 
   const softBorderClass = form.status === "Aktif Lototo"
@@ -182,9 +182,9 @@ export default function SGMaintenancePage() {
   }, []);
 
   const handleDownloadPdf = () => {
-    const pdfColumns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
+    const pdfColumns = ["Switch Gear", "Lokasi", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Alasan Stop", "Keterangan"];
     const rows = filteredSG.map((s) => [
-      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
+      s.name, s.location, s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.alasan_stop || "-", s.description,
     ]);
     downloadPdf({
       title: "Laporan Monitoring Switch Gear",
@@ -200,7 +200,7 @@ export default function SGMaintenancePage() {
     setForm({
       name: "", location: "", unit: "Tonasa 2/3", equipment: "", status: "Maintenance",
       pic: user?.name || "", requester: "", notifNo: "", lototoNo: "", description: "", image: "", images: [],
-      activeTime: getCurrentDatetimeLocal(), finishTime: "",
+      activeTime: getCurrentDatetimeLocal(), finishTime: "", alasan_stop: "",
     });
     setModalOpen(true);
   };
@@ -211,6 +211,7 @@ export default function SGMaintenancePage() {
       name: sg.name, location: sg.location, unit: sg.unit, equipment: sg.equipment || "", status: sg.status,
       pic: sg.pic, requester: sg.requester, notifNo: sg.notifNo, lototoNo: sg.lototoNo,
       description: sg.description, image: sg.image || "",
+      alasan_stop: sg.alasan_stop || "",
       images: getImages(sg),
       activeTime: toDatetimeLocal(sg.activeTime) || getCurrentDatetimeLocal(),
       finishTime: sg.status === "Selesai" ? (toDatetimeLocal(sg.finishTime) || getCurrentDatetimeLocal()) : "",
@@ -306,6 +307,7 @@ export default function SGMaintenancePage() {
     { key: "requester", header: "Peminta", render: (s: SwitchGear) => s.requester },
     { key: "activeTime", header: "Waktu Aktif", render: (s: SwitchGear) => s.activeTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
     { key: "finishTime", header: "Waktu Selesai", render: (s: SwitchGear) => s.finishTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
+    { key: "alasan_stop", header: "Alasan Stop", render: (s: SwitchGear) => s.alasan_stop || <span className="text-xs text-gray-300">—</span> },
     {
       key: "image", header: "Gambar", render: (s: SwitchGear) => {
         const imgs = getImages(s);
@@ -460,6 +462,10 @@ export default function SGMaintenancePage() {
               <label className="block text-xs font-semibold text-gray-600 mb-1">No. Lototo</label>
               <input type="text" value={form.lototoNo} onChange={(e) => setForm({ ...form, lototoNo: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="LT-2026-001" />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop</label>
+            <input type="text" value={form.alasan_stop || ""} onChange={(e) => setForm({ ...form, alasan_stop: e.target.value })} className={`w-full px-3.5 py-2.5 border-2 rounded-xl text-sm focus:bg-white focus:ring-4 outline-none transition-all ${softBorderClass}`} placeholder="Alasan stop..." />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>

@@ -61,6 +61,7 @@ export interface Database {
           image: string;
           images: string;
           description: string;
+          alasan_stop: string;
           created_at: string;
           updated_at: string;
         };
@@ -78,6 +79,7 @@ export interface Database {
           image?: string;
           images?: string;
           description?: string;
+          alasan_stop?: string;
         };
         Update: {
           name?: string;
@@ -93,6 +95,7 @@ export interface Database {
           image?: string;
           images?: string;
           description?: string;
+          alasan_stop?: string;
         };
         Relationships: [];
       };

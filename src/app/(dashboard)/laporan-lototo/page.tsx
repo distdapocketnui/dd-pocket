@@ -79,9 +79,9 @@ export default function LaporanHarianPage() {
   const handleDownloadPdf = () => {
     const periodLabel = formatPeriod(startDate, endDate);
 
-    const columns = ["Switch Gear", "Lokasi", "Peralatan", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Keterangan"];
+    const columns = ["Switch Gear", "Lokasi", "Peralatan", "Unit", "Status", "PIC", "No. Notif", "No. Lototo", "Peminta", "Waktu Aktif", "Waktu Selesai", "Alasan Stop", "Keterangan"];
     const rows = pdfData.map((s) => [
-      s.name, s.location, s.equipment || "-", s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.description,
+      s.name, s.location, s.equipment || "-", s.unit, s.status, s.pic, s.notifNo, s.lototoNo, s.requester, s.activeTime, s.finishTime, s.alasan_stop || "-", s.description,
     ]);
 
     const statusIdx = columns.indexOf("Status");
@@ -110,7 +110,7 @@ export default function LaporanHarianPage() {
     const now = new Date().toLocaleString("id-ID", {
       year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
     });
-    const message = `--------------------------------\n*Laporan Lototo*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Switch Gear :* _${s.name}_\n*Lokasi :* _${s.location}_\n*Peralatan :* _${s.equipment || "-"}_\n*Unit :* _${s.unit}_\n*Status :* _${s.status}_\n*PIC :* _${s.pic}_\n*No. Notif :* _${s.notifNo || "-"}_\n*No. Lototo :* _${s.lototoNo || "-"}_\n*Peminta :* _${s.requester}_\n*Waktu Aktif :* _${s.activeTime}_\n*Waktu Selesai :* _${s.finishTime || "-"}_\n*Keterangan :* _${s.description || "-"}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
+    const message = `--------------------------------\n*Laporan Lototo*\n_Seksi Pengaturan Beban_\n--------------------------------\n\n*Switch Gear :* _${s.name}_\n*Lokasi :* _${s.location}_\n*Peralatan :* _${s.equipment || "-"}_\n*Unit :* _${s.unit}_\n*Status :* _${s.status}_\n*PIC :* _${s.pic}_\n*No. Notif :* _${s.notifNo || "-"}_\n*No. Lototo :* _${s.lototoNo || "-"}_\n*Peminta :* _${s.requester}_\n*Waktu Aktif :* _${s.activeTime}_\n*Waktu Selesai :* _${s.finishTime || "-"}_\n*Alasan Stop :* _${s.alasan_stop || "-"}_\n*Keterangan :* _${s.description || "-"}_\n\n--------------------------------\n_Date Create : ${now}_\n_Send by *${user?.name || "-"}*_\n--------------------------------\n_Source : https://distda-pocketnui.biz.id_\n--------------------------------`;
     const encoded = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encoded}`, "_blank");
   };
@@ -179,6 +179,7 @@ export default function LaporanHarianPage() {
     { key: "requester", header: "Peminta", render: (s: SwitchGear) => s.requester },
     { key: "activeTime", header: "Waktu Aktif", render: (s: SwitchGear) => s.activeTime, className: "text-gray-500" },
     { key: "finishTime", header: "Waktu Selesai", render: (s: SwitchGear) => s.finishTime || <span className="text-xs text-gray-300">—</span>, className: "text-gray-500" },
+    { key: "alasan_stop", header: "Alasan Stop", render: (s: SwitchGear) => s.alasan_stop || <span className="text-xs text-gray-300">—</span> },
     { key: "image", header: "Gambar", render: (s: SwitchGear) => {
         const imgs = getImages(s);
         return imgs.length > 0 ? <ImageGallery images={imgs} /> : <span className="text-xs text-gray-300">—</span>;
@@ -355,6 +356,10 @@ export default function LaporanHarianPage() {
                 <p className="w-full px-3.5 py-2.5 border-2 border-gray-100 rounded-xl bg-gray-50 text-sm text-gray-500">{editForm.requester}</p>
               </div>
               <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop</label>
+                <input type="text" value={editForm.alasan_stop || ""} onChange={(e) => setEditForm({ ...editForm, alasan_stop: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>
                 <textarea value={editForm.description || ""} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all min-h-[70px]" />
               </div>
@@ -404,6 +409,10 @@ export default function LaporanHarianPage() {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Peminta</label>
                 <input type="text" value={editForm.requester || ""} disabled className="w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm disabled:bg-gray-100 disabled:border-gray-100 disabled:text-gray-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Alasan Stop</label>
+                <input type="text" value={editForm.alasan_stop || ""} onChange={(e) => setEditForm({ ...editForm, alasan_stop: e.target.value })} className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Keterangan</label>

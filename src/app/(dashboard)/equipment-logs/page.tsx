@@ -914,6 +914,8 @@ export default function EquipmentLogsPage() {
                   </select>
                 )}
 
+                {/* Checklist Main & Event Type — 2 kolom 1 baris */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Main Checklist */}
                 {selectedEquipment && (() => {
                   const eq = equipmentList.find(e => e.id === selectedEquipment);
@@ -925,9 +927,9 @@ export default function EquipmentLogsPage() {
                   ].filter(c => c.label && c.label.trim() !== "");
                   if (checks.length === 0) return null;
                   return (
-                    <div className="mt-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                    <div className="p-3 rounded-lg border border-gray-200 bg-gray-50">
                       <p className="text-xs font-semibold text-gray-600 mb-2">Checklist Main</p>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-col gap-2">
                         {eq.main1 && (
                           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                             <input
@@ -990,23 +992,27 @@ export default function EquipmentLogsPage() {
                     </div>
                   );
                 })()}
-              </div>
-
-              {/* Event Type */}
-
-
-              {/* Event Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
-                <div className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm flex items-center gap-2">
-                  {eventType === "START" && <CheckCircle size={16} className="text-green-600" />}
-                  {eventType === "HEATING_UP" && <Loader2 size={16} className="text-orange-600 animate-spin" />}
-                  {eventType === "STOP" && <XCircle size={16} className="text-red-600" />}
-                  <span className="font-medium">{eventType || "-"}</span>
+                {!selectedEquipment && <p className="text-xs text-gray-400 px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50">Pilih equipment terlebih dahulu</p>}
                 </div>
-              </div>
 
-              {/* Timestamp */}
+                {/* Event Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                  <div className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm flex items-center gap-2 ${
+                    eventType === "START" ? "border-green-400"
+                    : eventType === "STOP" ? "border-red-400"
+                    : eventType === "HEATING_UP" ? "border-orange-400"
+                    : "border-gray-200"
+                  }`}>
+                    {eventType === "START" && <CheckCircle size={16} className="text-green-600" />}
+                    {eventType === "HEATING_UP" && <Loader2 size={16} className="text-orange-600 animate-spin" />}
+                    {eventType === "STOP" && <XCircle size={16} className="text-red-600" />}
+                    <span className="font-medium">{eventType || "-"}</span>
+                  </div>
+                </div>
+                </div>
+
+              {/* Tanggal & Jam — full width */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal & Jam *</label>
                 <input
@@ -1017,72 +1023,65 @@ export default function EquipmentLogsPage() {
                 />
               </div>
 
-              {/* Shift */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
-                <select
-                  value={shift}
-                  onChange={(e) => setShift(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                >
-                  {SHIFT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+              {/* Shift & Posisi Power — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
+                  <select
+                    value={shift}
+                    onChange={(e) => setShift(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                  >
+                    {SHIFT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power</label>
+                  <select
+                    value={posisiPower}
+                    onChange={(e) => setPosisiPower(e.target.value as "BTG" | "PLN" | "")}
+                    className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${
+                      posisiPower === "PLN" ? "border-yellow-500"
+                      : posisiPower === "BTG" ? "border-blue-500"
+                      : "border-gray-200"
+                    }`}
+                  >
+                    <option value="">Pilih Posisi Power</option>
+                    <option value="BTG">BTG</option>
+                    <option value="PLN">PLN</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Posisi Power */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power</label>
-                <select
-                  value={posisiPower}
-                  onChange={(e) => setPosisiPower(e.target.value as "BTG" | "PLN" | "")}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                >
-                  <option value="">Pilih Posisi Power</option>
-                  <option value="BTG">BTG</option>
-                  <option value="PLN">PLN</option>
-                </select>
+              {/* Update Beban PLN & BTG — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={updateBebanPln}
+                    onChange={(e) => setUpdateBebanPln(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={updateBebanBtg}
+                    onChange={(e) => setUpdateBebanBtg(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
               </div>
 
-              {/* Update Beban PLN */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={updateBebanPln}
-                  onChange={(e) => setUpdateBebanPln(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                  placeholder="0.0"
-                />
-              </div>
-
-              {/* Update Beban BTG */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={updateBebanBtg}
-                  onChange={(e) => setUpdateBebanBtg(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                  placeholder="0.0"
-                />
-              </div>
-
-              {/* Created By (Read-only) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dibuat Oleh</label>
-                <input
-                  type="text"
-                  value={user?.name || ""}
-                  readOnly
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
-                />
-              </div>
-
-              {/* Reason (only for STOP / HEATING_UP) */}
+              {/* Alasan — full width (only for STOP / HEATING_UP) */}
               {(eventType === "STOP" || eventType === "HEATING_UP") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alasan *</label>
@@ -1096,6 +1095,17 @@ export default function EquipmentLogsPage() {
                   />
                 </div>
               )}
+
+              {/* Dibuat Oleh — full width */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dibuat Oleh</label>
+                <input
+                  type="text"
+                  value={user?.name || ""}
+                  readOnly
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
+                />
+              </div>
             </div>
 
             {/* Footer */}
@@ -1163,80 +1173,6 @@ export default function EquipmentLogsPage() {
                   <span>{equipmentName}</span>
                   <span className="text-gray-400 text-xs ml-2">Locked</span>
                 </div>
-                {selectedEquipment && (() => {
-                  const eq = equipmentList.find(e => e.id === selectedEquipment);
-                  if (!eq) return null;
-                  const checks = [
-                    { key: "main1", label: eq.main1, checked: main1Checked, setter: setMain1Checked },
-                    { key: "main2", label: eq.main2, checked: main2Checked, setter: setMain2Checked },
-                    { key: "main3", label: eq.main3, checked: main3Checked, setter: setMain3Checked },
-                  ].filter(c => c.label && c.label.trim() !== "");
-                  if (checks.length === 0) return null;
-                  return (
-                    <div className="mt-3 p-3 rounded-lg border border-gray-200 bg-gray-50">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">Checklist Main</p>
-                      <div className="flex flex-wrap gap-3">
-                        {eq.main1 && (
-                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={main1Checked}
-                              onChange={(e) => {
-                                const newVal = e.target.checked;
-                                setMain1Checked(newVal);
-                                if (!newVal) {
-                                  setMain2Checked(false);
-                                  setMain3Checked(false);
-                                }
-                                const newCount = (newVal ? 1 : 0) + (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0);
-                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
-                              }}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            {eq.main1}
-                          </label>
-                        )}
-                        {eq.main2 && (
-                          <label className={`flex items-center gap-2 text-sm ${main1Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
-                            <input
-                              type="checkbox"
-                              checked={main2Checked}
-                              disabled={!!editing || !main1Checked || !eq.main1}
-                              onChange={(e) => {
-                                const newVal = e.target.checked;
-                                setMain2Checked(newVal);
-                                if (!newVal) {
-                                  setMain3Checked(false);
-                                }
-                                const newCount = (main1Checked ? 1 : 0) + (newVal ? 1 : 0) + (newVal ? (main3Checked ? 1 : 0) : 0);
-                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
-                              }}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            {eq.main2}
-                          </label>
-                        )}
-                        {eq.main3 && (
-                          <label className={`flex items-center gap-2 text-sm ${main1Checked && main2Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
-                            <input
-                              type="checkbox"
-                              checked={main3Checked}
-                              disabled={!!editing || !(main1Checked && main2Checked) || !eq.main1 || !eq.main2}
-                              onChange={(e) => {
-                                const newVal = e.target.checked;
-                                setMain3Checked(newVal);
-                                const newCount = (main1Checked ? 1 : 0) + (main2Checked ? 1 : 0) + (newVal ? 1 : 0);
-                                setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
-                              }}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            {eq.main3}
-                          </label>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
                 {selectedEquipment && (
                   <div className="mt-2 text-xs">
                     <span className="text-gray-500">Status terakhir: </span>
@@ -1250,25 +1186,105 @@ export default function EquipmentLogsPage() {
                 )}
               </div>
 
-              {/* Event Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
-                <div className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm flex items-center gap-2">
-                  {eventType === "START" && <CheckCircle size={16} className="text-green-600" />}
-                  {eventType === "HEATING_UP" && <Loader2 size={16} className="text-orange-600 animate-spin" />}
-                  {eventType === "STOP" && <XCircle size={16} className="text-red-600" />}
-                  <span className="font-medium">{eventType || "-"}</span>
+              {/* Checklist Main & Event Type — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Checklist Main */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Checklist Main</label>
+                  {selectedEquipment && (() => {
+                    const eq = equipmentList.find(e => e.id === selectedEquipment);
+                    if (!eq) return <p className="text-xs text-gray-400">Pilih equipment</p>;
+                    const checks = [
+                      { key: "main1", label: eq.main1, checked: main1Checked, setter: setMain1Checked },
+                      { key: "main2", label: eq.main2, checked: main2Checked, setter: setMain2Checked },
+                      { key: "main3", label: eq.main3, checked: main3Checked, setter: setMain3Checked },
+                    ].filter(c => c.label && c.label.trim() !== "");
+                    if (checks.length === 0) return <p className="text-xs text-gray-400">Tidak ada checklist</p>;
+                    return (
+                      <div className="p-3 rounded-lg border border-gray-200 bg-gray-50">
+                        <div className="flex flex-col gap-2">
+                          {eq.main1 && (
+                            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={main1Checked}
+                                onChange={(e) => {
+                                  const newVal = e.target.checked;
+                                  setMain1Checked(newVal);
+                                  if (!newVal) {
+                                    setMain2Checked(false);
+                                    setMain3Checked(false);
+                                  }
+                                  const newCount = (newVal ? 1 : 0) + (main2Checked ? 1 : 0) + (main3Checked ? 1 : 0);
+                                  setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              {eq.main1}
+                            </label>
+                          )}
+                          {eq.main2 && (
+                            <label className={`flex items-center gap-2 text-sm ${main1Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                              <input
+                                type="checkbox"
+                                checked={main2Checked}
+                                disabled={!main1Checked || !eq.main1}
+                                onChange={(e) => {
+                                  const newVal = e.target.checked;
+                                  setMain2Checked(newVal);
+                                  if (!newVal) {
+                                    setMain3Checked(false);
+                                  }
+                                  const newCount = (main1Checked ? 1 : 0) + (newVal ? 1 : 0) + (newVal ? (main3Checked ? 1 : 0) : 0);
+                                  setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              {eq.main2}
+                            </label>
+                          )}
+                          {eq.main3 && (
+                            <label className={`flex items-center gap-2 text-sm ${main1Checked && main2Checked ? 'text-gray-700 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}>
+                              <input
+                                type="checkbox"
+                                checked={main3Checked}
+                                disabled={!(main1Checked && main2Checked) || !eq.main1 || !eq.main2}
+                                onChange={(e) => {
+                                  const newVal = e.target.checked;
+                                  setMain3Checked(newVal);
+                                  const newCount = (main1Checked ? 1 : 0) + (main2Checked ? 1 : 0) + (newVal ? 1 : 0);
+                                  setEventType(getEventTypeFromChecklistForNewValue(checks.length, newCount));
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              {eq.main3}
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {!selectedEquipment && <p className="text-xs text-gray-400 px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50">Pilih equipment terlebih dahulu</p>}
                 </div>
-                {selectedEquipment && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    {getLastEvent(selectedEquipment) === "START" ? "Equipment sedang running, hanya bisa STOP" :
-                     getLastEvent(selectedEquipment) === "STOP" ? "Equipment sedang stopped, hanya bisa START" :
-                     "Silakan pilih event type"}
+
+                {/* Event Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                  <div className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm flex items-center gap-2 ${
+                    eventType === "START" ? "border-green-400"
+                    : eventType === "STOP" ? "border-red-400"
+                    : eventType === "HEATING_UP" ? "border-orange-400"
+                    : "border-gray-200"
+                  }`}>
+                    {eventType === "START" && <CheckCircle size={16} className="text-green-600" />}
+                    {eventType === "HEATING_UP" && <Loader2 size={16} className="text-orange-600 animate-spin" />}
+                    {eventType === "STOP" && <XCircle size={16} className="text-red-600" />}
+                    <span className="font-medium">{eventType || "-"}</span>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* Timestamp */}
+              {/* Tanggal & Jam — full width */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal & Jam *</label>
                 <input
@@ -1279,72 +1295,65 @@ export default function EquipmentLogsPage() {
                 />
               </div>
 
-              {/* Shift */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
-                <select
-                  value={shift}
-                  onChange={(e) => setShift(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                >
-                  {SHIFT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
+              {/* Shift & Posisi Power — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Shift *</label>
+                  <select
+                    value={shift}
+                    onChange={(e) => setShift(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                  >
+                    {SHIFT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power</label>
+                  <select
+                    value={posisiPower}
+                    onChange={(e) => setPosisiPower(e.target.value as "BTG" | "PLN" | "")}
+                    className={`w-full px-3.5 py-2.5 border-2 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${
+                      posisiPower === "PLN" ? "border-yellow-500"
+                      : posisiPower === "BTG" ? "border-blue-500"
+                      : "border-gray-200"
+                    }`}
+                  >
+                    <option value="">Pilih Posisi Power</option>
+                    <option value="BTG">BTG</option>
+                    <option value="PLN">PLN</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Posisi Power */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Posisi Power</label>
-                <select
-                  value={posisiPower}
-                  onChange={(e) => setPosisiPower(e.target.value as "BTG" | "PLN" | "")}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                >
-                  <option value="">Pilih Posisi Power</option>
-                  <option value="BTG">BTG</option>
-                  <option value="PLN">PLN</option>
-                </select>
+              {/* Update Beban PLN & BTG — 2 kolom 1 baris */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={updateBebanPln}
+                    onChange={(e) => setUpdateBebanPln(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={updateBebanBtg}
+                    onChange={(e) => setUpdateBebanBtg(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                    placeholder="0.0"
+                  />
+                </div>
               </div>
 
-              {/* Update Beban PLN */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban PLN (MW)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={updateBebanPln}
-                  onChange={(e) => setUpdateBebanPln(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                  placeholder="0.0"
-                />
-              </div>
-
-              {/* Update Beban BTG */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Update Beban BTG (MW)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={updateBebanBtg}
-                  onChange={(e) => setUpdateBebanBtg(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-50 text-sm focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                  placeholder="0.0"
-                />
-              </div>
-
-              {/* Created By (Read-only) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dibuat Oleh</label>
-                <input
-                  type="text"
-                  value={user?.name || ""}
-                  readOnly
-                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
-                />
-              </div>
-
-              {/* Reason (only for STOP / HEATING_UP) */}
+              {/* Alasan — full width (only for STOP / HEATING_UP) */}
               {(eventType === "STOP" || eventType === "HEATING_UP") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alasan *</label>
@@ -1357,6 +1366,17 @@ export default function EquipmentLogsPage() {
                   />
                 </div>
               )}
+
+              {/* Dibuat Oleh — full width */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Dibuat Oleh</label>
+                <input
+                  type="text"
+                  value={user?.name || ""}
+                  readOnly
+                  className="w-full px-3.5 py-2.5 border-2 border-gray-200 rounded-xl bg-gray-100 text-sm text-gray-500 outline-none cursor-not-allowed"
+                />
+              </div>
             </div>
 
             {/* Footer */}
